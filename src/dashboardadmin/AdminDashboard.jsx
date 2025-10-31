@@ -9,17 +9,21 @@ import {
   ChevronUp,
   LogOut,
 } from "lucide-react";
-import AddProduct from "./AddProduct"; // ✅ import AddProduct component
+import AddProduct from "./AddProduct";
 import OrderManagement from "./OrderManagement";
 import SliderManagement from "./SliderManagement";
+import OverView from "./OverView";
+import ProductManagamnet from "./ProductManagamnet";
 
 const AdminDashboard = () => {
   const [openMenu, setOpenMenu] = useState(null);
-  const [activePage, setActivePage] = useState("Overview"); // track active page
+  const [activePage, setActivePage] = useState("OverView");
+
+  const [editData, setEditData] = useState(null); // ✅ Store edit product data
 
   const handleLogout = () => {
     localStorage.removeItem("isAuthenticated");
-    window.location.href = "/admin/login"; // simple logout
+    window.location.href = "/admin/login";
   };
 
   const toggleMenu = (menu) => {
@@ -30,14 +34,11 @@ const AdminDashboard = () => {
     {
       name: "Products",
       icon: Package,
-      submenu: [
-        { name: "Add Product" },
-        { name: "Product Management" },
-      ],
+      submenu: [{ name: "Add Product" }, { name: "Product Management" }],
     },
     { name: "Order Management", icon: ShoppingCart },
     { name: "Slider Management", icon: Image },
-    { name: "Overview", icon: BarChart },
+    { name: "OverView", icon: BarChart },
   ];
 
   return (
@@ -51,13 +52,13 @@ const AdminDashboard = () => {
         <nav className="flex-1 space-y-2">
           {navItems.map((item, index) => {
             const isOpen = openMenu === item.name;
-
             return (
               <div key={index}>
-                {/* Parent menu */}
                 <button
                   onClick={() =>
-                    item.submenu ? toggleMenu(item.name) : setActivePage(item.name)
+                    item.submenu
+                      ? toggleMenu(item.name)
+                      : setActivePage(item.name)
                   }
                   className={`w-full flex items-center justify-between p-3 rounded-lg font-medium transition text-left ${
                     activePage === item.name
@@ -69,11 +70,15 @@ const AdminDashboard = () => {
                     <item.icon className="w-5 h-5 mr-3" />
                     {item.name}
                   </div>
+
                   {item.submenu &&
-                    (isOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />)}
+                    (isOpen ? (
+                      <ChevronUp className="w-4 h-4" />
+                    ) : (
+                      <ChevronDown className="w-4 h-4" />
+                    ))}
                 </button>
 
-                {/* Submenu */}
                 {item.submenu && isOpen && (
                   <div className="ml-8 mt-1 space-y-1">
                     {item.submenu.map((sub, i) => (
@@ -96,10 +101,9 @@ const AdminDashboard = () => {
           })}
         </nav>
 
-        {/* Logout */}
         <button
           onClick={handleLogout}
-          className="flex items-center justify-center p-3 mt-4 text-sm font-medium cursor-pointer 
+          className="flex items-center justify-center p-3 mt-4 text-sm font-medium 
           text-red-600 border border-red-300 rounded-lg hover:bg-red-50 transition"
         >
           <LogOut className="w-4 h-4 mr-2" />
@@ -107,40 +111,42 @@ const AdminDashboard = () => {
         </button>
       </div>
 
-      {/* Main Content Area */}
+      {/* Main */}
       <div className="flex-1 overflow-auto p-10">
         <header className="flex justify-between items-center pb-6 border-b border-gray-200 mb-8">
           <h1 className="text-3xl font-bold text-gray-800">{activePage}</h1>
           <button
-            onClick={() => window.location.href = "/"}
+            onClick={() => (window.location.href = "/")}
             className="flex items-center text-sm font-medium text-gray-600 hover:text-gray-800"
           >
             <Home className="w-4 h-4 mr-1" /> View Store
           </button>
         </header>
 
-        {/* Conditional Rendering */}
-        <div className="bg-white  rounded-xl shadow-lg">
-          {activePage === "Overview" && (
-            <>
-              <h2 className="text-xl font-semibold mb-4 border-b pb-2">
-                Welcome to Admin Panel
-              </h2>
-              <p className="text-gray-600">
-                Use the sidebar to manage your products, orders, sliders, and more.
-              </p>
-            </>
+        <div className="bg-white rounded-xl shadow-lg">
+          {activePage === "Add Product" && (
+            <AddProduct
+              editData={editData}
+              onBack={() => setActivePage("Product Management")}
+            />
           )}
-
-          {activePage === "Add Product" && <AddProduct />}
 
           {activePage === "Product Management" && (
-            <p className="text-gray-600">Orders management table here.</p>
+            <ProductManagamnet
+              onAddNew={() => {
+                setEditData(null);
+                setActivePage("Add Product");
+              }}
+              onEditProduct={(data) => {
+                setEditData(data);
+                setActivePage("Add Product");
+              }}
+            />
           )}
 
-          {activePage === "Order Management" && <OrderManagement /> }
-
+          {activePage === "Order Management" && <OrderManagement />}
           {activePage === "Slider Management" && <SliderManagement />}
+          {activePage === "OverView" && <OverView />}
         </div>
       </div>
     </div>

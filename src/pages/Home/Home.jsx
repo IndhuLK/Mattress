@@ -6,6 +6,8 @@ import TrustedQuality from "./TrustedQuality";
 import BounceComfort from "./BounceComfort";
 import ThinkAbout from "./ThinkAbout";
 import SleepComfort from "./SleepComfort";
+import BenefitsSection from "./BenefitsSection";
+import OurServices from "./OurServices";
 //[#745e46] [#607442]
 const Home = () => {
   return (
@@ -14,7 +16,9 @@ const Home = () => {
       <SleepKingShopper />
       <ProductCard />
       <TrustedQuality />
+      <BenefitsSection />
       <BounceComfort />
+      <OurServices />
       <ThinkAbout />
       <SleepComfort />
     </div>

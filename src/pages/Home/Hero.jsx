@@ -63,7 +63,8 @@ const Hero = () => {
           <p className="text-lg md:text-xl mb-8 text-white/90 font-medium drop-shadow-md">
             {sliderData.description}
           </p>
-          <button className="flex items-center justify-center gap-2 mx-auto bg-[#3d5f12] hover:bg-[#4f3b30] text-white px-8 py-2 rounded-md transition">
+          <button className="flex items-center justify-center gap-2 mx-auto bg-[#3d5f12] 
+          hover:bg-[#4f3b30] text-white px-8 py-2 rounded-md transition cursor-pointer hover:scale-105">
             {sliderData.buttonText} <ArrowRight className="w-5 h-5" />
           </button>
         </div>

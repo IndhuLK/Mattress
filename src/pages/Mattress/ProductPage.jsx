@@ -3,12 +3,12 @@ import AOS from "aos";
 import "aos/dist/aos.css";
 import FilterSection from "../../components/FilterSection";
 import { ShoppingCart, Star } from "lucide-react";
-import { Link } from "react-router-dom";
-import { useProducts } from "/src/dashboardadmin/ProductContext"; // ✅ Added for context
+import { Link, useNavigate, useLocation } from "react-router-dom";
+import { db } from "/src/config/firebase"; // ✅ Firebase config file
+import { collection, getDocs } from "firebase/firestore";
 import mattress from "/src/assets/img1.jpg";
-import { useNavigate, useLocation } from "react-router-dom";
 
-// ✅ Product base data — only essential info
+// ✅ Default (local) base products
 const baseProducts = [
   {
     id: 1,
@@ -34,30 +34,6 @@ const baseProducts = [
     rating: 4.2,
     reviewCount: 80,
   },
-  {
-    id: 3,
-    title: "EcoFoam Natural Latex",
-    numericPrice: 1199,
-    image: "/images/latex.jpg",
-    brand: "GreenDream",
-    size: "King",
-    description:
-      "Crafted from 100% natural latex. Eco-friendly, breathable, and offers firm support.",
-    rating: 4.7,
-    reviewCount: 95,
-  },
-  {
-    id: 4,
-    title: "Orthopedic Comfort Mattress",
-    numericPrice: 899,
-    image: "/images/orthopedic.jpg",
-    brand: "OrthoPlus",
-    size: "Queen",
-    description:
-      "Engineered for spinal support with firm orthopedic layers that relieve body pressure points.",
-    rating: 4.6,
-    reviewCount: 140,
-  },
 ];
 
 // 🧩 Utility: Generate slug from title
@@ -68,51 +44,58 @@ const slugify = (text) =>
     .replace(/(^-|-$)+/g, "");
 
 const ProductPage = () => {
-  const { products: addedProducts, addProduct } = useProducts();
-  const navigate = useNavigate(); // ✅ new context products
+  const [firebaseProducts, setFirebaseProducts] = useState([]);
   const [filterOpen, setFilterOpen] = useState(false);
   const [sortOption, setSortOption] = useState("Newest");
   const [visibleCount, setVisibleCount] = useState(9);
-  const { pathname } = useLocation(); // 👈 track route
+  const { pathname } = useLocation();
+  const navigate = useNavigate();
 
+  // ✅ Fetch Firebase products
+  useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        const querySnapshot = await getDocs(collection(db, "mattressProducts"));
+        const products = querySnapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
+        setFirebaseProducts(products);
+      } catch (error) {
+        console.error("Error fetching Firebase products:", error);
+      }
+    };
+    fetchProducts();
+  }, []);
 
   useEffect(() => {
-    window.scrollTo({ top: 0, behavior: "smooth" }); // 👈 scrolls when route changes
+    AOS.init({ duration: 800, once: true, offset: 100 });
+  }, []);
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
   }, [pathname]);
 
-  useEffect(() => {
-    AOS.init({ duration: 800, once: true, offset: 100 });
-  }, []);
+  // 🧮 Combine local + Firebase products
+  const combinedProducts = [...baseProducts, ...firebaseProducts].map(
+    (p, index) => {
+      const numeric = p.numericPrice || parseFloat(p.price) || 0;
+      const oldNumeric = Math.round(numeric * 1.25);
+      const slug =
+        p.sku || `${slugify(p.title || "product")}-${numeric}-${p.size || "na"}`;
+      return {
+        ...p,
+        id: p.id || index + 1,
+        numericPrice: numeric,
+        price: `₹ ${numeric.toFixed(2)}`,
+        oldPrice: `₹ ${oldNumeric.toFixed(2)}`,
+        sku: slug,
+      };
+    }
+  );
 
-  useEffect(() => {
-    AOS.init({ duration: 800, once: true, offset: 100 });
-  }, []);
-
-  // ✅ Combine base + added products
-  const combinedProducts = [...baseProducts, ...addedProducts];
-
-  // 🧮 Final Products with auto-calculated fields
-  const products = combinedProducts.map((p, index) => {
-    const numeric = p.numericPrice || parseFloat(p.price) || 0;
-    const oldNumeric = Math.round(numeric * 1.25);
-    const slug =
-      p.sku || `${slugify(p.title || "product")}-${numeric}-${p.size || "na"}`;
-
-    return {
-      ...p,
-      id: p.id || index + 1,
-      numericPrice: numeric,
-      price: typeof p.price === "string" ? p.price : `₹ ${numeric.toFixed(2)}`,
-      oldPrice:
-        typeof p.oldPrice === "string"
-          ? p.oldPrice
-          : `₹ ${oldNumeric.toFixed(2)}`,
-      sku: slug,
-    };
-  });
-
-  // Sorting logic
-  const sortedProducts = [...products].sort((a, b) => {
+  // 🧠 Sorting
+  const sortedProducts = [...combinedProducts].sort((a, b) => {
     if (sortOption === "Price: Low to High")
       return a.numericPrice - b.numericPrice;
     if (sortOption === "Price: High to Low")
@@ -122,7 +105,7 @@ const ProductPage = () => {
     return b.id - a.id;
   });
 
-  // Infinite scroll
+  // 🌀 Infinite Scroll
   useEffect(() => {
     const handleScroll = () => {
       if (
@@ -154,8 +137,10 @@ const ProductPage = () => {
           {filterOpen ? "Close Filters" : "Show Filters"}
         </button>
 
-        {/* Sort Bar */}
-        <h1 className="md:text-3xl text-xl text-[#3d5f12] font-bold mb-5 ">Mattress</h1>
+        {/* Sort Section */}
+        <h1 className="md:text-3xl text-xl text-[#3d5f12] font-bold mb-5 ">
+          Mattress
+        </h1>
         <div
           className="flex flex-wrap items-center justify-between border-b border-gray-200 pb-3 mb-3"
           data-aos="fade-up"
@@ -193,15 +178,14 @@ const ProductPage = () => {
               {/* Product Image */}
               <div className="relative overflow-hidden">
                 <img
-                  src={product.image}
+                  src={product.imageUrl || product.image}
                   alt={product.title}
                   className="w-full h-56 object-cover transition-transform duration-700 group-hover:scale-110"
                 />
-
-                {/* 🏷️ Discount badge */}
+                {/* Discount badge */}
                 <div
                   className="absolute top-1 left-0 text-[#f70808] text-sm font-semibold px-2 py-1 
-                      rounded bg-cover bg-center flex items-center justify-center"
+                  rounded bg-cover bg-center flex items-center justify-center"
                   style={{
                     backgroundImage: "url('/src/assets/cloud-im.png')",
                     width: "85px",
@@ -218,10 +202,9 @@ const ProductPage = () => {
                 </div>
               </div>
 
-              {/* Product Info */}
+              {/* Info */}
               <div className="p-4 flex flex-col items-center text-center">
                 <h3 className="font-semibold text-lg">{product.title}</h3>
-
                 <div className="flex items-center gap-1 text-yellow-400 mt-1">
                   {[...Array(5)].map((_, i) => (
                     <Star
@@ -235,7 +218,7 @@ const ProductPage = () => {
                   </span>
                 </div>
 
-                {/* Price Display */}
+                {/* Price */}
                 <div className="mt-2 flex items-center gap-2">
                   <span className="text-[#3d5f12] font-bold text-lg">
                     {product.price}
@@ -245,26 +228,19 @@ const ProductPage = () => {
                   </span>
                 </div>
 
-                {/* 🛒 Shop Button */}
+                {/* Button */}
                 <button
-  onClick={() => {
-    // 1️⃣ Add product to context if not already present
-    const exists = addedProducts.find((p) => p.sku === product.sku);
-    if (!exists) addProduct(product);
-
-    window.scrollTo({ top: 0, behavior: "smooth" });
-
-    // 2️⃣ Navigate to ProductDetail page
-    navigate(`/mattress/${product.sku}`, { state: { product } });
-  }}
-  className="flex items-center justify-center gap-2 mt-4 border 
-    border-[#4e7265] px-4 py-1 rounded-md hover:bg-[#3d5f12] bg-[#745e46] 
-    transition text-white text-sm font-semibold cursor-pointer shadow-[#4e7265]
-    shadow-xs"
->
-  <ShoppingCart className="w-3 h-3 text-white" /> Shop Now
-</button>
-
+                  onClick={() =>
+                   navigate(`/mattress/${product.sku}`)
+                    
+                  }
+                  className="flex items-center justify-center gap-2 mt-4 border 
+                    border-[#4e7265] px-4 py-1 rounded-md hover:bg-[#3d5f12] bg-[#745e46] 
+                    transition text-white text-sm font-semibold cursor-pointer shadow-[#4e7265]
+                    shadow-xs"
+                >
+                  <ShoppingCart className="w-3 h-3 text-white" /> Shop Now
+                </button>
               </div>
             </div>
           ))}

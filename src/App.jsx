@@ -13,6 +13,7 @@ import PillowPage from "./pages/Pillows/PillowPage";
 import PillowDetails from "./pages/Pillows/PillowDetails";
 import AboutUs from "./pages/About/AboutUs";
 import ContactUs from "./pages/Contact/ContactUs";
+import AddProduct from "./dashboardadmin/AddProduct";
 
 function App() {
   const [count, setCount] = useState(0);
@@ -33,6 +34,7 @@ function App() {
           <Route path="/admin/login" element={<AdminLogin />} />
           <Route element={<PrivateRoute />}>
             <Route path="/admin/dashboard" element={<AdminDashboard/>} />
+            <Route path="/add-product" element={<AddProduct />} />
           </Route>
         </Routes>
         <Footer />

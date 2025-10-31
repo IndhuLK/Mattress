@@ -21,8 +21,9 @@ const ContactUs = () => {
         <div data-aos="fade-down">
           <h1 className="text-5xl font-bold text-white mb-4">Contact Us</h1>
           <p className="text-lg text-gray-200 max-w-2xl mx-auto">
-            We’re here to help you sleep better — reach out with any questions,
-            feedback, or partnership ideas.
+            We’re here to bring you closer to nature’s comfort. Whether you have
+            questions about our Kapok (Illavam Panju) mattresses and pillows or
+            need support with your order — we’d love to assist you.
           </p>
         </div>
       </section>
@@ -32,30 +33,32 @@ const ContactUs = () => {
         {/* Left: Info */}
         <div className="space-y-8" data-aos="fade-right">
           <h2 className="text-3xl font-semibold text-[#3d5f12]">
-            Get in Touch
+            Get in Touch with SKV
           </h2>
           <p className="text-gray-700 leading-relaxed">
-            Have questions about our mattresses, pillows, or your recent order?
-            Our team would love to hear from you. Fill out the form or reach us
-            through the contact details below.
+            Have a question, feedback, or wish to experience the comfort of
+            Illavam Panju bedding? Our friendly team is here to help you find
+            the perfect natural comfort solution for your home.
           </p>
 
           <div className="space-y-4">
             <div className="flex items-center gap-3">
               <Mail className="text-[#3d5f12]" />
-              <p>support@skvnaturalbeds.com</p>
+              <p>info@skvnaturalbeds.com</p>
             </div>
             <div className="flex items-center gap-3">
               <Phone className="text-[#3d5f12]" />
-              <p>+91 98765 43210</p>
+              <p>+91 98432 56789</p>
             </div>
             <div className="flex items-center gap-3">
               <MapPin className="text-[#3d5f12]" />
-              <p>SKV Natural Beds Comforts, Chennai, Tamil Nadu, India</p>
+              <p>
+                SKV Natural Bed, 22/1 Anna Nagar, Chennai, Tamil Nadu, India
+              </p>
             </div>
             <div className="flex items-center gap-3">
               <Clock className="text-[#3d5f12]" />
-              <p>Mon – Sat: 9:00 AM – 6:00 PM</p>
+              <p>Mon – Sat: 9:00 AM – 7:00 PM</p>
             </div>
           </div>
         </div>
@@ -115,9 +118,10 @@ const ContactUs = () => {
       {/* Map or Footer CTA */}
       <section className="bg-[#3d5f12] text-white py-16 text-center">
         <h2 className="text-3xl font-bold mb-4">Visit Our Experience Center</h2>
-        <p className="text-gray-100 mb-8">
-          Feel the comfort before you buy — drop by our showroom and explore our
-          full range of mattresses and pillows in person.
+        <p className="text-gray-100 mb-8 max-w-2xl mx-auto">
+          Experience the softness of <strong>Kapok (Illavam Panju)</strong> in
+          person. Visit our showroom to feel the difference in every mattress
+          and pillow — crafted for natural comfort and relaxation.
         </p>
         <a
           href="https://maps.google.com"

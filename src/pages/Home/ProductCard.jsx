@@ -36,22 +36,17 @@ const ProductCard = ({
       data-aos-duration="800"
       data-aos-once="true"
     >
-      {/* Badge */}
-      {badge && (
-        <div className="absolute top-4 left-4 z-10">
-          <span
-            className="inline-flex items-center rounded-full px-3 py-4 text-xs font-semibold
-             text-[#f70808]"
-            style={{
-              backgroundImage: 'url("/src/assets/cloud-im.png")', // 👈 path to your background image
-              backgroundSize: "cover",
-              backgroundPosition: "center",
-            }}
-          >
-            {badge}
-          </span>
-        </div>
-      )}
+     {/* Badge */}
+{badge && (
+  <div className="absolute top-4 left-4 z-10">
+    <span
+      className="inline-flex items-center rounded-full px-3 py-2 text-xs font-semibold
+      text-white bg-teal-700"
+    >
+      {badge}
+    </span>
+  </div>
+)}
 
       {/* Image */}
       <div className="relative overflow-hidden rounded-t-2xl bg-gray-100 p-4 aspect-[1/0.8]">
@@ -139,72 +134,77 @@ const ProductPage = () => {
 
   const products = [
     {
-      id: 1,
-      image: image1,
-      name: "Memory Foam Deluxe",
-      price: 13000,
-      rating: 4.8,
-      reviews: 1224,
-      badge: "Best Seller",
-      features: [
-        "10 Year Warranty • No Cost EMI",
-        "Pressure relief foam",
-        "Full body support • Cool comfort",
-      ],
-    },
-    {
-      id: 2,
-      image: image2,
-      name: "Ortho Memory Foam",
-      price: 13000,
-      rating: 4.6,
-      reviews: 982,
-      badge: "Premium",
-      features: [
-        "10 Year Warranty • No Cost EMI",
-        "Pressure relief foam",
-        "Full body support • Cool comfort",
-      ],
-    },
-    {
-      id: 3,
-      image: image3,
-      name: "Cloud Comfort Plus",
-      price: 13000,
-      rating: 4.9,
-      reviews: 1456,
-      badge: "Top Rated",
-      features: [
-        "10 Year Warranty • No Cost EMI",
-        "Pressure relief foam",
-        "Full body support • Cool comfort",
-      ],
-    },
-    {
-      id: 4,
-      image: image4,
-      name: "Luxury Sleep Pro",
-      price: 13000,
-      rating: 4.7,
-      reviews: 1103,
-      badge: "Top Rated",
-      features: [
-        "10 Year Warranty • No Cost EMI",
-        "Pressure relief foam",
-        "Full body support • Cool comfort",
-      ],
-    },
+  id: 1,
+  image: image1,
+  name: "Ilavam Panju Natural Comfort Mattress",
+  price: 13000,
+  rating: 4.8,
+  reviews: 1224,
+  badge: "Best Seller",
+  features: [
+    "Made with 100% Natural Ilavam Panju (Kapok)",
+    "Eco-friendly and hypoallergenic material",
+    "Provides superior air circulation for cool sleep",
+    
+  ],
+},
+{
+  id: 2,
+  image: image2,
+  name: "Organic Kapok Ortho Support Mattress",
+  price: 13000,
+  rating: 4.6,
+  reviews: 982,
+  badge: "Premium",
+  features: [
+    "Ilavam Panju fiber for natural orthopedic support",
+    "Reduces body heat for a cool, restful sleep",
+    "Chemical-free and safe for sensitive skin",
+    
+  ],
+},
+{
+  id: 3,
+  image: image3,
+  name: "Cloud Kapok Dream Mattress",
+  price: 13000,
+  rating: 4.9,
+  reviews: 1456,
+  badge: "Top Rated",
+  features: [
+    "Stuffed with pure Kapok (Ilavam Panju) fibers",
+    "Naturally ventilated – stays cool all night",
+    "Ultra-soft comfort with firm body balance",
+   
+  ],
+},
+{
+  id: 4,
+  image: image4,
+  name: "Luxury Ilavam Panju Bliss Mattress",
+  price: 13000,
+  rating: 4.7,
+  reviews: 1103,
+  badge: "Top Rated",
+  features: [
+    "Luxury filling with natural Ilavam Panju blend",
+    "Promotes deep, uninterrupted sleep",
+    "Anti-dust and moisture control properties",
+    
+  ],
+},
+
   ];
 
   return (
     <div className="min-h-screen bg-gray-50 overflow-hidden">
       {/* Hero Section */}
       <header
-        className="relative overflow-hidden py-12 text-center"
+        className="relative overflow-hidden py-12 text-center "
         data-aos="fade-down"
       >
         <h1 className="text-xl md:text-4xl font-bold text-[#3d5f12]">
-          Find Your Perfect Mattress
+          Find Your Perfect Mattress & Pillows
         </h1>
       </header>
 

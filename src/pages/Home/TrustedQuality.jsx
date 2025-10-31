@@ -9,17 +9,22 @@ const TrustedQuality = () => {
   }, []);
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-8 p-6 md:p-12 py-16 mt-10 
-    items-center overflow-hidden">
+    <div
+      className="grid grid-cols-1 md:grid-cols-3 gap-8 p-6 md:p-12 py-16 mt-10 
+    items-center overflow-hidden"
+    >
       {/* Trusted Content */}
       <div data-aos="fade-right" className="text-center md:text-left">
         <h1 className="text-[#36491f] font-bold text-2xl md:text-3xl">
           Trusted Quality. Proven Comfort.
         </h1>
         <p className="text-gray-700 text-sm md:text-lg mt-4 leading-relaxed">
-          Join countless happy sleepers who trust our quality, comfort, and
-          reliability. Every mattress is built to deliver lasting support and
-          peace of mind.
+          Join countless happy homes who trust our{" "}
+          <span className="font-semibold text-[#36491f]">
+            Illavam Panju — (Kapok)  
+          </span> for its natural softness, breathability, and eco-friendly comfort.
+          Each product is crafted to deliver lasting freshness, gentle support,
+          and peaceful sleep — the way nature intended.
         </p>
         <button
           className="items-center justify-center gap-2 rounded-md mt-5 text-sm font-medium
@@ -50,21 +55,25 @@ const TrustedQuality = () => {
       </div>
 
       {/* Points */}
-      <div data-aos="fade-left" className="py-8 md:py-10 flex items-center justify-center">
+      <div
+        data-aos="fade-left"
+        className="py-8 md:py-10 flex items-center justify-center"
+      >
         <ul className="text-center space-y-6 w-full max-w-xs">
-          <li className="border-b border-blue-500 pb-2 hover:text-[#4f3b30] transition-colors">
-            Cloud Comfort
-          </li>
-          <li className="border-b border-blue-500 pb-2 hover:text-[#4f3b30] transition-colors">
-            BackCare Mattress
-          </li>
-          <li className="border-b border-blue-500 pb-2 hover:text-[#4f3b30] transition-colors">
-            Temperature Balance
-          </li>
-          <li className="border-b border-blue-500 pb-2 hover:text-[#4f3b30] transition-colors">
-            StableSleep
-          </li>
-        </ul>
+  <li className="border-b border-green-600 pb-2 hover:text-[#36491f] transition-colors">
+    Natural & Eco-Friendly Fiber
+  </li>
+  <li className="border-b border-green-600 pb-2 hover:text-[#36491f] transition-colors">
+    Soft and Breathable Comfort
+  </li>
+  <li className="border-b border-green-600 pb-2 hover:text-[#36491f] transition-colors">
+    Hypoallergenic & Chemical-Free
+  </li>
+  <li className="border-b border-green-600 pb-2 hover:text-[#36491f] transition-colors">
+    Long-Lasting Freshness & Support
+  </li>
+</ul>
+
       </div>
     </div>
   );

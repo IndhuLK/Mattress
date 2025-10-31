@@ -1,7 +1,16 @@
 import React, { useState, useEffect } from "react";
+import { db, storage } from "../config/firebase";
+import {
+  collection,
+  addDoc,
+  updateDoc,
+  doc,
+  serverTimestamp,
+} from "firebase/firestore";
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 
-const AddProduct = () => {
-  const [product, setProduct] = useState({
+const AddProduct = ({ editData, onBack }) => {
+  const emptyProduct = {
     type: "",
     title: "",
     sku: "",
@@ -9,8 +18,8 @@ const AddProduct = () => {
     price: "",
     oldPrice: "",
     stock: "",
-    size: "",
-    thickness: "",
+    size: [],
+    thickness: [],
     features: "",
     warranty: "",
     material: "",
@@ -19,37 +28,96 @@ const AddProduct = () => {
     description: "",
     whyChoose: "",
     images: [],
-  });
+  };
+
+  const [product, setProduct] = useState(emptyProduct);
+  const [editId, setEditId] = useState(null);
+  const [newSize, setNewSize] = useState("");
+  const [newThickness, setNewThickness] = useState("");
+  const [uploading, setUploading] = useState(false);
+
+  // 🧠 Load edit data if available
+  useEffect(() => {
+    if (editData) {
+      setProduct({
+        ...editData,
+        size: Array.isArray(editData.size)
+          ? editData.size
+          : editData.size
+          ? [editData.size]
+          : [],
+        thickness: Array.isArray(editData.thickness)
+          ? editData.thickness
+          : editData.thickness
+          ? [editData.thickness]
+          : [],
+      });
+      setEditId(editData.id);
+    }
+  }, [editData]);
 
   // 🧠 SKU Auto-generation
   useEffect(() => {
     const { title, type, price, stock, size, thickness } = product;
+
     if (title || type || price || stock || size || thickness) {
       const makeShort = (str) =>
-        str ? str.trim().toLowerCase().replace(/\s+/g, "-").slice(0, 9) : "";
+        str ? str.trim().toLowerCase().replace(/\s+/g, "-") : "";
 
-      const titleShort = makeShort(title.split(" ").slice(0, 3).join("-"));
-      const typeShort = makeShort(type.split(" ")[0]);
+      const titleShort = makeShort(title);
+      const typeShort = makeShort(type?.split(" ")[0]);
+
       const formattedSku = [
         titleShort,
         typeShort,
         price ? `p${price}` : "",
         stock ? `s${stock}` : "",
-        size ? `sz${size}` : "",
-        thickness ? `t${thickness}` : "",
+        size?.length ? `sz${size[0]}` : "",
+        thickness?.length ? `t${thickness[0]}` : "",
       ]
         .filter(Boolean)
         .join("-");
 
       setProduct((prev) => ({ ...prev, sku: formattedSku }));
     }
-  }, [product.title, product.type, product.price, product.stock, product.size, product.thickness]);
+  }, [
+    product.title,
+    product.type,
+    product.price,
+    product.stock,
+    product.size,
+    product.thickness,
+  ]);
 
   // 🖼️ Handle multiple image uploads
-  const handleImageUpload = (e) => {
+  const handleImageUpload = async (e) => {
     const files = Array.from(e.target.files);
-    const newImages = files.map((file) => URL.createObjectURL(file));
-    setProduct((prev) => ({ ...prev, images: [...prev.images, ...newImages] }));
+    if (!files.length) return;
+
+    setUploading(true);
+    const uploadedURLs = [];
+
+    try {
+      for (const file of files) {
+        const imageRef = ref(
+          storage,
+          `product_images/${file.name}_${Date.now()}`
+        );
+        await uploadBytes(imageRef, file);
+        const downloadURL = await getDownloadURL(imageRef);
+        uploadedURLs.push(downloadURL);
+      }
+
+      setProduct((prev) => ({
+        ...prev,
+        images: [...prev.images, ...uploadedURLs],
+      }));
+    } catch (error) {
+      console.error("❌ Image upload error:", error);
+      alert("Image upload failed: " + error.message);
+    } finally {
+      setUploading(false);
+    }
   };
 
   // ❌ Delete image
@@ -58,58 +126,76 @@ const AddProduct = () => {
     setProduct((prev) => ({ ...prev, images: updatedImages }));
   };
 
-  // ✍️ Input change handler
+  // ✍️ Handle input changes
   const handleChange = (e) => {
     const { name, value } = e.target;
     setProduct({ ...product, [name]: value });
   };
 
-  // ✅ Save to localStorage
-  const handleSubmit = (e) => {
+  // 💾 Save or Update Product in Firestore
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // Get existing products from localStorage
-    const existing = JSON.parse(localStorage.getItem("addedProducts")) || [];
+    if (!product.type) {
+      alert("⚠️ Please select a Product Type before saving.");
+      return;
+    }
 
-    // Add new product
-    const newProduct = {
-      ...product,
-      id: Date.now(),
-      numericPrice: parseFloat(product.price) || 0,
-      rating: 4.5,
-      reviewCount: 0,
-      image: product.images[0] || "/images/default.jpg",
-    };
+    try {
+      const key =
+        product.type.toLowerCase() === "mattress"
+          ? "mattressProducts"
+          : "pillowProducts";
 
-    localStorage.setItem("addedProducts", JSON.stringify([...existing, newProduct]));
-    alert("✅ Product Added Successfully!");
+      console.log("🟡 Saving to collection:", key);
+      console.log("🟢 Product data before save:", product);
 
-    // Reset form
-    setProduct({
-      type: "",
-      title: "",
-      sku: "",
-      brand: "",
-      price: "",
-      oldPrice: "",
-      stock: "",
-      size: "",
-      thickness: "",
-      features: "",
-      warranty: "",
-      material: "",
-      warrantyTime: "",
-      techSpecs: "",
-      description: "",
-      whyChoose: "",
-      images: [],
-    });
+      if (editId) {
+        // Update existing product
+        const docRef = doc(db, key, editId);
+        await updateDoc(docRef, {
+          ...product,
+          updatedAt: serverTimestamp(),
+        });
+        alert("✅ Product updated successfully!");
+      } else {
+        // Add new product
+        await addDoc(collection(db, key), {
+          ...product,
+          numericPrice: parseFloat(product.price) || 0,
+          rating: 4.5,
+          reviewCount: 0,
+          image: product.images[0] || "/images/default.jpg",
+          createdAt: serverTimestamp(),
+        });
+        alert("✅ Product added successfully!");
+      }
+
+      // Reset after success
+      setProduct(emptyProduct);
+      setEditId(null);
+      onBack();
+    } catch (error) {
+      console.error("❌ Error saving product:", error);
+      alert("❌ Error: " + error.message);
+    }
   };
 
   return (
     <div className="p-8 bg-gray-100 min-h-screen">
-      <h1 className="text-2xl font-bold mb-6 text-gray-800">Add Product</h1>
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold text-gray-800">
+          {editId ? "Edit Product" : "Add Product"}
+        </h1>
+        <button
+          onClick={onBack}
+          className="px-4 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600"
+        >
+          ← Back
+        </button>
+      </div>
 
+      {/* PRODUCT FORM */}
       <form
         onSubmit={handleSubmit}
         className="grid grid-cols-1 lg:grid-cols-2 gap-6 bg-white shadow-lg rounded-2xl p-6"
@@ -117,7 +203,7 @@ const AddProduct = () => {
         {/* LEFT SIDE */}
         <div className="space-y-4">
           <h2 className="text-lg font-semibold text-gray-700 border-b pb-2">
-            Add New Product
+            {editId ? "Update Product Info" : "Add New Product"}
           </h2>
 
           {/* Product Type */}
@@ -133,8 +219,7 @@ const AddProduct = () => {
             >
               <option value="">Select type</option>
               <option value="Mattress">Mattress</option>
-              <option value="Furniture">Furniture</option>
-              <option value="Electronics">Electronics</option>
+              <option value="Pillow">Pillow</option>
             </select>
           </div>
 
@@ -203,48 +288,138 @@ const AddProduct = () => {
             </div>
           </div>
 
-          {/* Stock, Size, Thickness */}
-          <div className="grid grid-cols-3 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-600">
-                Stock
-              </label>
-              <select
-                name="stock"
-                value={product.stock}
-                onChange={handleChange}
-                className="w-full border rounded-md p-2"
+          {/* Stock */}
+          <div>
+            <label className="block text-sm font-medium text-gray-600">
+              Stock
+            </label>
+            <select
+              name="stock"
+              value={product.stock}
+              onChange={handleChange}
+              className="w-1/2 border rounded-md p-2"
+            >
+              <option value="">Select</option>
+              <option value="InStock">In Stock</option>
+              <option value="OutOfStock">Out of Stock</option>
+            </select>
+          </div>
+
+          {/* Size & Thickness */}
+          {/* Size */}
+          <div className="flex flex-col">
+            <label className="block text-sm font-medium text-gray-600">
+              Sizes (Add Multiple)
+            </label>
+            <div className="flex gap-2 mt-1">
+              <input
+                type="text"
+                placeholder="Enter size (e.g. 72x36)"
+                value={newSize}
+                onChange={(e) => setNewSize(e.target.value)}
+                className="flex-1 border rounded-md p-2"
+              />
+              <button
+                type="button"
+                onClick={() => {
+                  if (newSize.trim() && !product.size.includes(newSize.trim())) {
+                    setProduct({
+                      ...product,
+                      size: [...product.size, newSize.trim()],
+                    });
+                    setNewSize("");
+                  }
+                }}
+                className="bg-blue-600 text-white px-3 py-2 rounded-md hover:bg-blue-700"
               >
-                <option value="">Select</option>
-                <option value="InStock">In Stock</option>
-                <option value="OutOfStock">Out of Stock</option>
-              </select>
+                Add
+              </button>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-600">
-                Size
-              </label>
-              <input
-                name="size"
-                value={product.size}
-                onChange={handleChange}
-                className="w-full border rounded-md p-2"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-600">
-                Thickness
-              </label>
-              <input
-                name="thickness"
-                value={product.thickness}
-                onChange={handleChange}
-                className="w-full border rounded-md p-2"
-              />
+
+            <div className="flex flex-wrap gap-2 mt-2">
+              {product.size.map((s, i) => (
+                <span
+                  key={i}
+                  className="bg-gray-200 text-gray-800 px-3 py-1 rounded-full text-sm flex items-center gap-2"
+                >
+                  {s}
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setProduct({
+                        ...product,
+                        size: product.size.filter((_, index) => index !== i),
+                      })
+                    }
+                    className="text-red-500 hover:text-red-700"
+                  >
+                    ✕
+                  </button>
+                </span>
+              ))}
             </div>
           </div>
 
-          {/* Product Features */}
+          {/* Thickness */}
+          <div className="flex flex-col">
+            <label className="block text-sm font-medium text-gray-600">
+              Thickness (Add Multiple)
+            </label>
+            <div className="flex gap-2 mt-1">
+              <input
+                type="text"
+                placeholder="Enter thickness (e.g. 4 inch)"
+                value={newThickness}
+                onChange={(e) => setNewThickness(e.target.value)}
+                className="flex-1 border rounded-md p-2"
+              />
+              <button
+                type="button"
+                onClick={() => {
+                  if (
+                    newThickness.trim() &&
+                    !product.thickness.includes(newThickness.trim())
+                  ) {
+                    setProduct({
+                      ...product,
+                      thickness: [...product.thickness, newThickness.trim()],
+                    });
+                    setNewThickness("");
+                  }
+                }}
+                className="bg-blue-600 text-white px-3 py-2 rounded-md hover:bg-blue-700"
+              >
+                Add
+              </button>
+            </div>
+
+            <div className="flex flex-wrap gap-2 mt-2">
+              {product.thickness.map((t, i) => (
+                <span
+                  key={i}
+                  className="bg-gray-200 text-gray-800 px-3 py-1 rounded-full text-sm flex items-center gap-2"
+                >
+                  {t}
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setProduct({
+                        ...product,
+                        thickness: product.thickness.filter(
+                          (_, index) => index !== i
+                        ),
+                      })
+                    }
+                    className="text-red-500 hover:text-red-700"
+                  >
+                    ✕
+                  </button>
+                </span>
+              ))}
+            </div>
+          </div>
+
+          {/* Features, Material, Warranty */}
           <div>
             <label className="block text-sm font-medium text-gray-600">
               Product Features
@@ -254,49 +429,44 @@ const AddProduct = () => {
               value={product.features}
               onChange={handleChange}
               rows="2"
-              placeholder="Enter product features"
               className="w-full border rounded-md p-2"
             />
           </div>
 
-          {/* Warranty, Material, Warranty Time */}
-          <div className="grid grid-cols-1 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-600">
-                Material
-              </label>
-              <textarea
-                name="material"
-                value={product.material}
-                onChange={handleChange}
-                placeholder="Material type"
-                className="w-full border rounded-md p-2"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-600">
-                Warranty Time
-              </label>
-              <textarea
-                name="warrantyTime"
-                value={product.warrantyTime}
-                onChange={handleChange}
-                placeholder="Duration"
-                className="w-full border rounded-md p-2"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-600">
-                Warranty
-              </label>
-              <input
-                name="warranty"
-                value={product.warranty}
-                onChange={handleChange}
-                placeholder="e.g. 1 Year"
-                className="w-full border rounded-md p-2"
-              />
-            </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-600">
+              Material
+            </label>
+            <textarea
+              name="material"
+              value={product.material}
+              onChange={handleChange}
+              className="w-full border rounded-md p-2"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-600">
+              Warranty Time
+            </label>
+            <input
+              name="warrantyTime"
+              value={product.warrantyTime}
+              onChange={handleChange}
+              className="w-full border rounded-md p-2"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-600">
+              Warranty
+            </label>
+            <input
+              name="warranty"
+              value={product.warranty}
+              onChange={handleChange}
+              className="w-full border rounded-md p-2"
+            />
           </div>
         </div>
 
@@ -309,7 +479,7 @@ const AddProduct = () => {
           {/* Image Upload */}
           <div>
             <label className="block text-sm font-medium text-gray-600 mb-1">
-              Upload Images (Multiple)
+              Upload Images
             </label>
             <input
               type="file"
@@ -318,6 +488,10 @@ const AddProduct = () => {
               onChange={handleImageUpload}
               className="w-full border rounded-md p-2"
             />
+
+            {uploading && (
+              <p className="text-blue-600 text-sm mt-1">Uploading...</p>
+            )}
 
             <div className="flex flex-wrap gap-3 mt-3">
               {product.images.map((img, index) => (
@@ -339,21 +513,6 @@ const AddProduct = () => {
             </div>
           </div>
 
-          {/* Technical Specification */}
-          <div>
-            <label className="block text-sm font-medium text-gray-600">
-              Technical Specification
-            </label>
-            <textarea
-              name="techSpecs"
-              value={product.techSpecs}
-              onChange={handleChange}
-              rows="3"
-              placeholder="Example: Title → answer"
-              className="w-full border rounded-md p-2"
-            />
-          </div>
-
           {/* Description */}
           <div>
             <label className="block text-sm font-medium text-gray-600">
@@ -364,7 +523,6 @@ const AddProduct = () => {
               value={product.description}
               onChange={handleChange}
               rows="3"
-              placeholder="Write description"
               className="w-full border rounded-md p-2"
             />
           </div>
@@ -379,7 +537,6 @@ const AddProduct = () => {
               value={product.whyChoose}
               onChange={handleChange}
               rows="3"
-              placeholder="Enter key points"
               className="w-full border rounded-md p-2"
             />
           </div>
@@ -388,9 +545,13 @@ const AddProduct = () => {
           <div className="text-right">
             <button
               type="submit"
-              className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition"
+              className={`px-6 py-2 rounded-md text-white ${
+                editId
+                  ? "bg-green-600 hover:bg-green-700"
+                  : "bg-blue-600 hover:bg-blue-700"
+              } transition`}
             >
-              Add Product
+              {editId ? "Update Product" : "Add Product"}
             </button>
           </div>
         </div>
