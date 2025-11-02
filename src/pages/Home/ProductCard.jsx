@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from "react";
 import { Star, ShoppingCart, Check } from "lucide-react";
 import image1 from "/src/assets/image1.jpg";
-import image2 from "/src/assets/image2.jpg";
+import image2 from "/src/assets/Pillow2.jpeg";
 import image3 from "/src/assets/image3.jpg";
-import image4 from "/src/assets/image4.jpg";
+import image4 from "/src/assets/Pillow3.jpeg";
 import AOS from "aos";
 import "aos/dist/aos.css";
+import { useNavigate } from "react-router-dom";
 
 // --- BounceComfort Card ---
 const ProductCard = ({
@@ -18,6 +19,7 @@ const ProductCard = ({
   badge = "",
 }) => {
   const [isHovered, setIsHovered] = useState(false);
+  const navigate = useNavigate();
 
   return (
     <div
@@ -36,17 +38,17 @@ const ProductCard = ({
       data-aos-duration="800"
       data-aos-once="true"
     >
-     {/* Badge */}
-{badge && (
-  <div className="absolute top-4 left-4 z-10">
-    <span
-      className="inline-flex items-center rounded-full px-3 py-2 text-xs font-semibold
+      {/* Badge */}
+      {badge && (
+        <div className="absolute top-4 left-4 z-10">
+          <span
+            className="inline-flex items-center rounded-full px-3 py-2 text-xs font-semibold
       text-white bg-teal-700"
-    >
-      {badge}
-    </span>
-  </div>
-)}
+          >
+            {badge}
+          </span>
+        </div>
+      )}
 
       {/* Image */}
       <div className="relative overflow-hidden rounded-t-2xl bg-gray-100 p-4 aspect-[1/0.8]">
@@ -101,13 +103,15 @@ const ProductCard = ({
             ₹{price.toLocaleString()}
           </p>
           <button
-            className="flex items-center gap-2 px-4 py-1 text-sm 
-          font-semibold text-white hover:bg-[#3d5f12] bg-[#4f3b30] rounded  
-          transition-transform duration-300 hover:scale-105 cursor-pointer"
-          >
-            <ShoppingCart className="w-4 h-4 text-white" />
-            Shop Now
-          </button>
+  onClick={() => navigate("/mattress")} // 👉 Change path if needed ("/pillow", "/products", etc.)
+  className="flex items-center gap-2 px-4 py-1 text-sm 
+    font-semibold text-white hover:bg-[#3d5f12] bg-[#4f3b30] rounded  
+    transition-transform duration-300 hover:scale-105 cursor-pointer"
+>
+  <ShoppingCart className="w-4 h-4 text-white" />
+  Shop Now
+</button>
+
         </div>
       </div>
 
@@ -134,66 +138,61 @@ const ProductPage = () => {
 
   const products = [
     {
-  id: 1,
-  image: image1,
-  name: "Ilavam Panju Natural Comfort Mattress",
-  price: 13000,
-  rating: 4.8,
-  reviews: 1224,
-  badge: "Best Seller",
-  features: [
-    "Made with 100% Natural Ilavam Panju (Kapok)",
-    "Eco-friendly and hypoallergenic material",
-    "Provides superior air circulation for cool sleep",
-    
-  ],
-},
-{
-  id: 2,
-  image: image2,
-  name: "Organic Kapok Ortho Support Mattress",
-  price: 13000,
-  rating: 4.6,
-  reviews: 982,
-  badge: "Premium",
-  features: [
-    "Ilavam Panju fiber for natural orthopedic support",
-    "Reduces body heat for a cool, restful sleep",
-    "Chemical-free and safe for sensitive skin",
-    
-  ],
-},
-{
-  id: 3,
-  image: image3,
-  name: "Cloud Kapok Dream Mattress",
-  price: 13000,
-  rating: 4.9,
-  reviews: 1456,
-  badge: "Top Rated",
-  features: [
-    "Stuffed with pure Kapok (Ilavam Panju) fibers",
-    "Naturally ventilated – stays cool all night",
-    "Ultra-soft comfort with firm body balance",
-   
-  ],
-},
-{
-  id: 4,
-  image: image4,
-  name: "Luxury Ilavam Panju Bliss Mattress",
-  price: 13000,
-  rating: 4.7,
-  reviews: 1103,
-  badge: "Top Rated",
-  features: [
-    "Luxury filling with natural Ilavam Panju blend",
-    "Promotes deep, uninterrupted sleep",
-    "Anti-dust and moisture control properties",
-    
-  ],
-},
-
+      id: 1,
+      image: image1,
+      name: "Ilavam Panju Natural Comfort Mattress",
+      price: 13000,
+      rating: 4.8,
+      reviews: 1224,
+      badge: "Best Seller",
+      features: [
+        "Made with 100% Natural Ilavam Panju (Kapok)",
+        "Eco-friendly and hypoallergenic material",
+        "Provides superior air circulation for cool sleep",
+      ],
+    },
+    {
+      id: 2,
+      image: image2,
+      name: "Organic Kapok Ortho Support Pillow",
+      price: 13000,
+      rating: 4.6,
+      reviews: 982,
+      badge: "Premium",
+      features: [
+        "Ilavam Panju fiber for natural orthopedic support",
+        "Reduces body heat for a cool, restful sleep",
+        "Chemical-free and safe for sensitive skin",
+      ],
+    },
+    {
+      id: 3,
+      image: image3,
+      name: "Cloud Kapok Dream Mattress",
+      price: 13000,
+      rating: 4.9,
+      reviews: 1456,
+      badge: "Top Rated",
+      features: [
+        "Stuffed with pure Kapok (Ilavam Panju) fibers",
+        "Naturally ventilated – stays cool all night",
+        "Ultra-soft comfort with firm body balance",
+      ],
+    },
+    {
+      id: 4,
+      image: image4,
+      name: "Luxury Ilavam Panju Bliss Pillow",
+      price: 13000,
+      rating: 4.7,
+      reviews: 1103,
+      badge: "Top Rated",
+      features: [
+        "Luxury filling with natural Ilavam Panju blend",
+        "Promotes deep, uninterrupted sleep",
+        "Anti-dust and moisture control properties",
+      ],
+    },
   ];
 
   return (

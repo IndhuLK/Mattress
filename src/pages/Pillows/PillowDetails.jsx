@@ -11,84 +11,97 @@ import pillow1 from "/src/assets/Pillow1.jpeg";
 import pillow3 from "/src/assets/Pillow3.jpeg";
 import { db } from "/src/config/firebase"; // ✅ Adjust path
 import { collection, query, where, getDocs } from "firebase/firestore";
+import { useCart } from "/src/components/CartContext";
 
-const PillowDetails = () => { 
+const PillowDetails = () => {
   const { sku } = useParams();
-  
-    // ✅ All Hooks MUST be here (top of component)
-    const [product, setProduct] = useState(null);
-    const [loading, setLoading] = useState(true);
-  
-    const [selectedImage, setSelectedImage] = useState(0);
-    const [accordion, setAccordion] = useState({
-      features: false,
-      care: false,
-      tips: false,
+
+  // ✅ All Hooks MUST be here (top of component)
+  const [product, setProduct] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const { addToCart } = useCart();
+
+  const [selectedImage, setSelectedImage] = useState(0);
+  const [accordion, setAccordion] = useState({
+    features: false,
+    care: false,
+    tips: false,
+  });
+  const [selectedSize, setSelectedSize] = useState("King");
+  const [quantity, setQuantity] = useState(1);
+  const [selectedThickness, setSelectedThickness] = useState("");
+
+  const handleAddToCart = (product) => {
+    if (!product) return;
+    addToCart({
+      ...product,
+      quantity,
+      selectedSize,
+      selectedThickness,
     });
-    const [selectedSize, setSelectedSize] = useState("King");
-    const [quantity, setQuantity] = useState(1);
-    const [selectedThickness, setSelectedThickness] = useState("");
-  
-    // ✅ Fetch product from Firestore
-    useEffect(() => {
-      const fetchProduct = async () => {
-        try {
-          const q = query(
-            collection(db, "pillowProducts"),
-            where("sku", "==", sku)
-          );
-  
-          const querySnapshot = await getDocs(q);
-  
-          if (!querySnapshot.empty) {
-            setProduct(querySnapshot.docs[0].data());
-          } else {
-            setProduct(null);
-          }
-        } catch (error) {
-          console.error("Error fetching product:", error);
+    alert(`${product.title} added to cart!`);
+  };
+
+  // ✅ Fetch product from Firestore
+  useEffect(() => {
+    const fetchProduct = async () => {
+      try {
+        const q = query(
+          collection(db, "pillowProducts"),
+          where("sku", "==", sku)
+        );
+
+        const querySnapshot = await getDocs(q);
+
+        if (!querySnapshot.empty) {
+          setProduct(querySnapshot.docs[0].data());
+        } else {
           setProduct(null);
         }
-        setLoading(false);
-      };
-  
-      fetchProduct();
-    }, [sku]);
-  
-    // ✅ JSON-LD Structured Data
-    const productSchema =
-      product && {
-        "@context": "https://schema.org/",
-        "@type": "Product",
-        name: product.title,
-        image: product.images,
-        sku: product.sku,
-        offers: {
-          "@type": "Offer",
-          priceCurrency: "INR",
-          price: product.price?.replace(/[^\d]/g, ""),
-          availability: "https://schema.org/InStock",
-        },
-      };
-  
-    // ✅ Must return AFTER hooks
-    if (loading) return <p className="text-center py-20 text-lg">Loading...</p>;
-    if (!product) return <p className="text-center py-20 text-lg">Product not found.</p>;
-  
-    const images =
-      product.images && product.images.length > 0
-        ? product.images
-        : [product.image || "/images/default.jpg"];
-  
-    const mattressSizes = ["Single", "Double", "Queen", "King"];
-    const thicknessOptions = Array.isArray(product.thickness)
-      ? product.thickness
-      : [product.thickness || ""];
-  
-    const toggleAccordion = (section) => {
-      setAccordion((prev) => ({ ...prev, [section]: !prev[section] }));
+      } catch (error) {
+        console.error("Error fetching product:", error);
+        setProduct(null);
+      }
+      setLoading(false);
     };
-  
+
+    fetchProduct();
+  }, [sku]);
+
+  // ✅ JSON-LD Structured Data
+  const productSchema = product && {
+    "@context": "https://schema.org/",
+    "@type": "Product",
+    name: product.title,
+    image: product.images,
+    sku: product.sku,
+    offers: {
+      "@type": "Offer",
+      priceCurrency: "INR",
+      price: product.price?.replace(/[^\d]/g, ""),
+      availability: "https://schema.org/InStock",
+    },
+  };
+
+  // ✅ Must return AFTER hooks
+  if (loading) return <p className="text-center py-20 text-lg">Loading...</p>;
+  if (!product)
+    return <p className="text-center py-20 text-lg">Product not found.</p>;
+
+  const images =
+    product.images && product.images.length > 0
+      ? product.images
+      : [product.image || "/images/default.jpg"];
+
+  const mattressSizes = ["Single", "Double", "Queen", "King"];
+  const thicknessOptions = Array.isArray(product.thickness)
+    ? product.thickness
+    : [product.thickness || ""];
+
+  const toggleAccordion = (section) => {
+    setAccordion((prev) => ({ ...prev, [section]: !prev[section] }));
+  };
+
   return (
     <div>
       <div className="max-w-7xl mx-auto my-12 px-4 md:px-6 flex flex-col md:flex-row gap-12 items-start">
@@ -239,18 +252,26 @@ const PillowDetails = () => {
           <div className="flex gap-4 text-sm mt-3">
             <button
               onClick={() => handleAddToCart(product)}
-  className="flex items-center justify-center gap-3 px-5 py-2 bg-[#745e46] 
-  text-white rounded-full font-semibold hover:bg-[#5b4a3c] transition shadow-lg 
-  w-full md:w-auto text-md cursor-pointer"
+              className="flex items-center justify-center gap-3 px-5 py-2 bg-[#745e46] 
+                       text-white rounded-full font-semibold hover:bg-[#5b4a3c] transition shadow-lg 
+                          w-full md:w-auto text-md cursor-pointer"
             >
               <ShoppingCart className="w-5 h-5" /> Add to Cart
             </button>
-            <button
-              className="px-8 py-2 bg-[#3d5f12] text-white rounded-full  font-semibold 
-          hover:bg-[#2c460d] transition shadow-lg w-full md:w-auto cursor-pointer"
-            >
-              Buy Now
-            </button>
+           <button
+  onClick={() => {
+    const phoneNumber = "919500694734"; // 👈 replace with your WhatsApp number
+    const productLink = window.location.href; // ✅ public product URL
+    const message = `Hi! I'm interested in buying this product: ${productLink}`;
+    const encodedMessage = encodeURIComponent(message);
+    window.open(`https://wa.me/${phoneNumber}?text=${encodedMessage}`, "_blank");
+  }}
+  className="px-8 py-2 bg-[#3d5f12] text-white rounded-full font-semibold 
+  hover:bg-[#2c460d] transition shadow-lg w-full md:w-auto cursor-pointer"
+>
+  Buy Now
+</button>
+
           </div>
           {/* Size Selection */}
           <div className="mt-1">

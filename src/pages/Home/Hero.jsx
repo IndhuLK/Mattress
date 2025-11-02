@@ -9,6 +9,7 @@ import AOS from "aos";
 import "aos/dist/aos.css";
 import { collection, getDocs } from "firebase/firestore";
 import { db } from "/src/config/firebase";
+import { useNavigate } from "react-router-dom";
 
 const Hero = () => {
   const [slides, setSlides] = useState([]);
@@ -18,6 +19,7 @@ const Hero = () => {
     minutes: 0,
     seconds: 0,
   });
+  const navigate = useNavigate();
 
   useEffect(() => {
   const fetchSlides = async () => {
@@ -120,12 +122,13 @@ const Hero = () => {
                   </h1>
                   <p className="text-lg md:text-xl mb-6">{slide.description}</p>
                   <button
-                    className="bg-green-600 hover:bg-green-700 text-white px-6 py-3
-                     rounded-lg font-medium"
-                    data-aos="zoom-in"
-                  >
-                    {slide.button}
-                  </button>
+      onClick={() => navigate("/mattress")}
+      className="bg-green-600 hover:bg-green-700 text-white px-6 py-3 cursor-pointer
+        rounded-lg font-medium transition-transform duration-300 hover:scale-105"
+      data-aos="zoom-in"
+    >
+      {slide.button}
+    </button>
                 </div>
               </div>
             </SwiperSlide>

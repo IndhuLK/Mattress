@@ -1,6 +1,6 @@
 // src/components/Navbar.jsx
 import React, { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom"; // ✅ Added useNavigate
 import {
   Search,
   User,
@@ -17,6 +17,7 @@ const Navbar = () => {
   const [isProductOpen, setIsProductOpen] = useState(false);
   const [cartOpen, setCartOpen] = useState(false);
   const [cart, setCart] = useState([]);
+  const navigate = useNavigate(); // ✅ Initialize navigate
 
   const navLinks = [
     { name: "Home", path: "/" },
@@ -56,6 +57,16 @@ const Navbar = () => {
     localStorage.setItem("cart", JSON.stringify(updated));
   };
 
+  // ✅ Navigate to product details when clicking inside cart
+  const handleProductClick = (item) => {
+    setCartOpen(false);
+    if (item.type?.toLowerCase() === "pillow") {
+      navigate(`/pillow/${item.sku}`);
+    } else {
+      navigate(`/mattress/${item.sku}`);
+    }
+  };
+
   return (
     <header className="w-full shadow-md relative">
       {/* 🔷 Offer Bar */}
@@ -77,9 +88,7 @@ const Navbar = () => {
           {navLinks.map((link, index) =>
             link.submenu ? (
               <div key={index} className="relative group">
-                <button
-                  className="flex items-center gap-1 text-[#36491f] hover:text-[#745e46] transition py-3 font-bold"
-                >
+                <button className="flex items-center gap-1 text-[#36491f] hover:text-[#745e46] transition py-3 font-bold">
                   {link.name}
                   <ChevronDown size={16} className="mt-[2px]" />
                 </button>
@@ -124,7 +133,10 @@ const Navbar = () => {
           <User className="cursor-pointer text-[#36491f]" size={24} />
 
           {/* Cart Icon with badge */}
-          <div className="relative cursor-pointer" onClick={() => setCartOpen(!cartOpen)}>
+          <div
+            className="relative cursor-pointer"
+            onClick={() => setCartOpen(!cartOpen)}
+          >
             <ShoppingCart className="text-[#36491f]" size={24} />
             {cart.length > 0 && (
               <span className="absolute -top-2 -right-2 bg-red-600 text-white text-xs w-5 h-5 flex items-center justify-center rounded-full">
@@ -134,7 +146,10 @@ const Navbar = () => {
           </div>
 
           {/* Mobile Menu Toggle */}
-          <button className="md:hidden focus:outline-none" onClick={() => setIsOpen(!isOpen)}>
+          <button
+            className="md:hidden focus:outline-none"
+            onClick={() => setIsOpen(!isOpen)}
+          >
             {isOpen ? <X size={22} /> : <Menu size={22} />}
           </button>
         </div>
@@ -189,13 +204,19 @@ const Navbar = () => {
 
       {/* 🔸 CART DRAWER */}
       {cartOpen && (
-        <div className="absolute right-0 top-full bg-white shadow-xl border border-gray-200 w-80 max-h-[80vh] overflow-y-auto z-[9999] rounded-lg p-4">
+        <div className="absolute right-0 top-full bg-white shadow-xl border border-gray-200 
+        w-80 max-h-[80vh] overflow-y-auto z-[9999] rounded-lg p-4">
           <h3 className="text-lg font-bold mb-3 text-[#36491f]">Your Cart</h3>
           {cart.length === 0 ? (
-            <p className="text-gray-600">Your cart is empty 🛒</p>
+            <p className="text-gray-600">Your cart is empty </p>
           ) : (
             cart.map((item) => (
-              <div key={item.id} className="flex items-center justify-between mb-3 border-b pb-2">
+              <div
+                key={item.sku}
+                className="flex items-center justify-between mb-3 border-b pb-2 cursor-pointer
+                 hover:bg-gray-50 rounded-md"
+                onClick={() => handleProductClick(item)} // ✅ Added
+              >
                 <div className="flex items-center gap-3">
                   <img
                     src={item.image}
@@ -203,14 +224,19 @@ const Navbar = () => {
                     className="w-14 h-14 rounded-md object-cover"
                   />
                   <div>
-                    <p className="font-semibold text-[#36491f]">{item.title}</p>
+                    <p className="font-semibold text-[#36491f]">
+                      {item.title}
+                    </p>
                     <p className="text-sm text-gray-600">₹{item.price}</p>
                   </div>
                 </div>
                 <Trash2
                   size={18}
                   className="text-red-500 cursor-pointer"
-                  onClick={() => handleDeleteItem(item.id)}
+                  onClick={(e) => {
+                    e.stopPropagation(); // ✅ prevent navigation when deleting
+                    handleDeleteItem(item.id);
+                  }}
                 />
               </div>
             ))

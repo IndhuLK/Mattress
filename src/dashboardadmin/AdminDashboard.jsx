@@ -134,7 +134,7 @@ const AdminDashboard = () => {
           {activePage === "Product Management" && (
             <ProductManagamnet
               onAddNew={() => {
-                setEditData(null);
+                setEditData(null); 
                 setActivePage("Add Product");
               }}
               onEditProduct={(data) => {

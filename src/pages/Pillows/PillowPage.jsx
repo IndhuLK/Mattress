@@ -3,38 +3,9 @@ import AOS from "aos";
 import "aos/dist/aos.css";
 import FilterSection from "../../components/FilterSection";
 import { ShoppingCart, Star } from "lucide-react";
-import { Link, useNavigate, useLocation } from "react-router-dom";
-import { db } from "/src/config/firebase"; // ✅ Firebase config file
+import { useNavigate, useLocation } from "react-router-dom";
+import { db } from "/src/config/firebase";
 import { collection, getDocs } from "firebase/firestore";
-import mattress from "/src/assets/img1.jpg";
-
-// ✅ Default (local) base products
-const baseProducts = [
-  {
-    id: 1,
-    title: "Therapeutic Memory Foam",
-    numericPrice: 949,
-    image: mattress,
-    brand: "Super Mattress",
-    size: "King",
-    description:
-      "Relieves back pain and supports spine alignment. Premium memory foam layers provide a restful sleep experience.",
-    rating: 4.5,
-    reviewCount: 120,
-  },
-  {
-    id: 2,
-    title: "Premium Innerspring Twin",
-    numericPrice: 599,
-    image: "/images/innerspring.jpg",
-    brand: "CozyRest",
-    size: "Queen",
-    description:
-      "A bouncy and supportive innerspring design with soft cushioning for superior comfort.",
-    rating: 4.2,
-    reviewCount: 80,
-  },
-];
 
 // 🧩 Utility: Generate slug from title
 const slugify = (text) =>
@@ -51,7 +22,17 @@ const PillowPage = () => {
   const { pathname } = useLocation();
   const navigate = useNavigate();
 
-  // ✅ Fetch Firebase products
+  // ✅ Filters
+  const [filters, setFilters] = useState({
+    availability: "all",
+    minPrice: 0,
+    maxPrice: 75000,
+    firmness: "",
+    size: "",
+    type: [],
+  });
+
+  // ✅ Fetch Firebase pillow products
   useEffect(() => {
     const fetchProducts = async () => {
       try {
@@ -62,7 +43,7 @@ const PillowPage = () => {
         }));
         setFirebaseProducts(products);
       } catch (error) {
-        console.error("Error fetching Firebase products:", error);
+        console.error("Error fetching Firebase pillow products:", error);
       }
     };
     fetchProducts();
@@ -76,32 +57,76 @@ const PillowPage = () => {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }, [pathname]);
 
-  // 🧮 Combine local + Firebase products
-  const combinedProducts = [...baseProducts, ...firebaseProducts].map(
-    (p, index) => {
-      const numeric = p.numericPrice || parseFloat(p.price) || 0;
-      const oldNumeric = Math.round(numeric * 1.25);
-      const slug =
-        p.sku || `${slugify(p.title || "product")}-${numeric}-${p.size || "na"}`;
-      return {
-        ...p,
-        id: p.id || index + 1,
-        numericPrice: numeric,
-        price: `₹ ${numeric.toFixed(2)}`,
-        oldPrice: `₹ ${oldNumeric.toFixed(2)}`,
-        sku: slug,
-      };
-    }
-  );
+  // 🧮 Prepare product data
+  const combinedProducts = firebaseProducts.map((p, index) => {
+    const numeric = p.numericPrice || parseFloat(p.price) || 0;
+    const oldNumeric = Math.round(numeric * 1.25);
+    const slug =
+      p.sku ||
+      `${slugify(p.title || "pillow")}-${numeric}-${p.size || "na"}`;
 
-  // 🧠 Sorting
-  const sortedProducts = [...combinedProducts].sort((a, b) => {
+    return {
+      ...p,
+      id: p.id || index + 1,
+      numericPrice: numeric,
+      price: `₹ ${numeric.toFixed(2)}`,
+      oldPrice: `₹ ${oldNumeric.toFixed(2)}`,
+      sku: slug,
+    };
+  });
+
+  // 🎯 Apply filters
+  const filteredProducts = combinedProducts.filter((product) => {
+    // Availability
+    if (filters.availability === "in-stock" && product.stock === 0)
+      return false;
+
+    // Price range
+    if (
+      product.numericPrice < filters.minPrice ||
+      product.numericPrice > filters.maxPrice
+    )
+      return false;
+
+    // Firmness
+    if (
+      filters.firmness &&
+      String(product.firmness || "")
+        .toLowerCase()
+        .trim() !== filters.firmness.toLowerCase().trim()
+    )
+      return false;
+
+    // Size
+    if (
+      filters.size &&
+      String(product.size || "")
+        .toLowerCase()
+        .trim() !== filters.size.toLowerCase().trim()
+    )
+      return false;
+
+    // Type (multiple)
+    if (
+      filters.type.length > 0 &&
+      !filters.type.some(
+        (t) =>
+          t.toLowerCase().trim() ===
+          String(product.type || "").toLowerCase().trim()
+      )
+    )
+      return false;
+
+    return true;
+  });
+
+  // 🧠 Sorting logic
+  const sortedProducts = [...filteredProducts].sort((a, b) => {
     if (sortOption === "Price: Low to High")
       return a.numericPrice - b.numericPrice;
     if (sortOption === "Price: High to Low")
       return b.numericPrice - a.numericPrice;
-    if (sortOption === "Alphabetical (A–Z)")
-      return a.title.localeCompare(b.title);
+    if (sortOption === "Alphabetical (A–Z)") return a.title.localeCompare(b.title);
     return b.id - a.id;
   });
 
@@ -124,7 +149,12 @@ const PillowPage = () => {
   return (
     <div className="flex flex-col md:flex-row w-full p-6 gap-6">
       {/* Sidebar */}
-      <FilterSection filterOpen={filterOpen} setFilterOpen={setFilterOpen} />
+      <FilterSection
+        filterOpen={filterOpen}
+        setFilterOpen={setFilterOpen}
+        filters={filters}
+        setFilters={setFilters}
+      />
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col gap-4">
@@ -137,8 +167,8 @@ const PillowPage = () => {
           {filterOpen ? "Close Filters" : "Show Filters"}
         </button>
 
-        {/* Sort Section */}
-        <h1 className="md:text-3xl text-xl text-[#3d5f12] font-bold mb-5 ">
+        {/* Sort Header */}
+        <h1 className="md:text-3xl text-xl text-[#3d5f12] font-bold mb-5">
           Pillow
         </h1>
         <div
@@ -150,8 +180,7 @@ const PillowPage = () => {
             <select
               value={sortOption}
               onChange={(e) => setSortOption(e.target.value)}
-              className="border border-gray-300 rounded-md px-3 py-1 text-sm focus:outline-none
-               focus:ring-2 focus:ring-[#4e7265]"
+              className="border border-gray-300 rounded-md px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-[#4e7265]"
             >
               <option>Newest</option>
               <option>Price: Low to High</option>
@@ -171,27 +200,16 @@ const PillowPage = () => {
               key={product.id}
               data-aos="zoom-in"
               data-aos-delay={index * 100}
-              className="group relative border border-[#bee4d5] rounded-2xl overflow-hidden shadow-sm
-              hover:shadow-md transition bg-white transform hover:-translate-y-1 hover:scale-[1.02]
-              duration-500"
+              className="group relative border border-[#bee4d5] rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition bg-white transform hover:-translate-y-1 hover:scale-[1.02] duration-500"
             >
-              {/* Product Image */}
+              {/* Image */}
               <div className="relative overflow-hidden">
                 <img
                   src={product.imageUrl || product.image}
                   alt={product.title}
                   className="w-full h-56 object-cover transition-transform duration-700 group-hover:scale-110"
                 />
-                {/* Discount badge */}
-                <div
-                  className="absolute top-1 left-0 text-[#f70808] text-sm font-semibold px-2 py-1 
-                  rounded bg-cover bg-center flex items-center justify-center"
-                  style={{
-                    backgroundImage: "url('/src/assets/cloud-im.png')",
-                    width: "85px",
-                    height: "45px",
-                  }}
-                >
+                <div className="absolute top-2 left-2 bg-teal-700 text-white text-sm font-semibold px-3 py-1 rounded-lg flex items-center justify-center shadow-md">
                   {Math.round(
                     ((parseFloat(product.oldPrice.replace(/[₹ ,]/g, "")) -
                       product.numericPrice) /
@@ -230,14 +248,8 @@ const PillowPage = () => {
 
                 {/* Button */}
                 <button
-                  onClick={() =>
-                   navigate(`/pillow/${product.sku}`)
-                    
-                  }
-                  className="flex items-center justify-center gap-2 mt-4 border 
-                    border-[#4e7265] px-4 py-1 rounded-md hover:bg-[#3d5f12] bg-[#745e46] 
-                    transition text-white text-sm font-semibold cursor-pointer shadow-[#4e7265]
-                    shadow-xs"
+                  onClick={() => navigate(`/pillow/${product.sku}`)}
+                  className="flex items-center justify-center gap-2 mt-4 border border-[#4e7265] px-4 py-1 rounded-md hover:bg-[#3d5f12] bg-[#745e46] transition text-white text-sm font-semibold cursor-pointer shadow-[#4e7265] shadow-xs"
                 >
                   <ShoppingCart className="w-3 h-3 text-white" /> Shop Now
                 </button>
@@ -246,7 +258,7 @@ const PillowPage = () => {
           ))}
         </div>
 
-        {/* Loading Indicator */}
+        {/* Loading Spinner */}
         {visibleCount < sortedProducts.length && (
           <div className="flex justify-center py-6">
             <div className="animate-spin rounded-full h-8 w-8 border-2 border-[#745e46] border-t-transparent"></div>

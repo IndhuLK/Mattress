@@ -2,8 +2,11 @@ import React, { useEffect } from "react";
 import AOS from "aos";
 import "aos/dist/aos.css";
 import Quality from "/src/assets/Quality.jpg";
+import { useNavigate } from "react-router-dom";
 
 const TrustedQuality = () => {
+  const navigate = useNavigate();
+  
   useEffect(() => {
     AOS.init({ duration: 1000, once: true });
   }, []);
@@ -27,6 +30,7 @@ const TrustedQuality = () => {
           and peaceful sleep — the way nature intended.
         </p>
         <button
+         onClick={() => navigate("/mattress")}
           className="items-center justify-center gap-2 rounded-md mt-5 text-sm font-medium
            py-2 px-8 bg-[#3d5f12] hover:bg-[#4f3b30] text-white hover:scale-105 hover:shadow-sky-100
           hover:shadow-lg ] transition-all duration-300 cursor-pointer"

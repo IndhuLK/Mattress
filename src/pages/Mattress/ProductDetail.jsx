@@ -9,9 +9,11 @@ import {
 import { useParams } from "react-router-dom";
 import { db } from "/src/config/firebase"; // ✅ Adjust path
 import { collection, query, where, getDocs } from "firebase/firestore";
+import { useCart } from "/src/components/CartContext";
 
 const ProductDetail = () => {
   const { sku } = useParams();
+    const { addToCart } = useCart();
 
   // ✅ All Hooks MUST be here (top of component)
   const [product, setProduct] = useState(null);
@@ -26,6 +28,17 @@ const ProductDetail = () => {
   const [selectedSize, setSelectedSize] = useState("King");
   const [quantity, setQuantity] = useState(1);
   const [selectedThickness, setSelectedThickness] = useState("");
+
+  const handleAddToCart = (product) => {
+    if (!product) return;
+    addToCart({
+      ...product,
+      quantity,
+      selectedSize,
+      selectedThickness,
+    });
+    alert(`${product.title} added to cart!`);
+  };
 
   // ✅ Fetch product from Firestore
   useEffect(() => {
@@ -54,24 +67,24 @@ const ProductDetail = () => {
   }, [sku]);
 
   // ✅ JSON-LD Structured Data
-  const productSchema =
-    product && {
-      "@context": "https://schema.org/",
-      "@type": "Product",
-      name: product.title,
-      image: product.images,
-      sku: product.sku,
-      offers: {
-        "@type": "Offer",
-        priceCurrency: "INR",
-        price: product.price?.replace(/[^\d]/g, ""),
-        availability: "https://schema.org/InStock",
-      },
-    };
+  const productSchema = product && {
+    "@context": "https://schema.org/",
+    "@type": "Product",
+    name: product.title,
+    image: product.images,
+    sku: product.sku,
+    offers: {
+      "@type": "Offer",
+      priceCurrency: "INR",
+      price: product.price?.replace(/[^\d]/g, ""),
+      availability: "https://schema.org/InStock",
+    },
+  };
 
   // ✅ Must return AFTER hooks
   if (loading) return <p className="text-center py-20 text-lg">Loading...</p>;
-  if (!product) return <p className="text-center py-20 text-lg">Product not found.</p>;
+  if (!product)
+    return <p className="text-center py-20 text-lg">Product not found.</p>;
 
   const images =
     product.images && product.images.length > 0
@@ -236,18 +249,26 @@ const ProductDetail = () => {
           {/* Add to Cart & Buy Now */}
           <div className="flex gap-4 text-sm mt-3">
             <button
+              onClick={() => handleAddToCart(product)}
               className="flex items-center justify-center gap-3 px-5 py-2 bg-[#745e46] 
-          text-white rounded-full font-semibold hover:bg-[#5b4a3c] transition shadow-lg 
-          w-full md:w-auto text-md cursor-pointer"
+                       text-white rounded-full font-semibold hover:bg-[#5b4a3c] transition shadow-lg 
+                          w-full md:w-auto text-md cursor-pointer"
             >
               <ShoppingCart className="w-5 h-5" /> Add to Cart
             </button>
-            <button
-              className="px-8 py-2 bg-[#3d5f12] text-white rounded-full  font-semibold 
-          hover:bg-[#2c460d] transition shadow-lg w-full md:w-auto cursor-pointer"
-            >
-              Buy Now
-            </button>
+           <button
+  onClick={() => {
+    const phoneNumber = "919500694734"; // 👈 replace with your WhatsApp number
+    const productLink = window.location.href; // ✅ public product URL
+    const message = `Hi! I'm interested in buying this product: ${productLink}`;
+    const encodedMessage = encodeURIComponent(message);
+    window.open(`https://wa.me/${phoneNumber}?text=${encodedMessage}`, "_blank");
+  }}
+  className="px-8 py-2 bg-[#3d5f12] text-white rounded-full font-semibold 
+  hover:bg-[#2c460d] transition shadow-lg w-full md:w-auto cursor-pointer"
+>
+  Buy Now
+</button>
           </div>
           {/* Size Selection */}
           <div className="mt-1">

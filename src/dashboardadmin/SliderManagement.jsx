@@ -312,7 +312,7 @@ const SliderManagement = () => {
             >
               <div className="flex items-center gap-4">
                 <img
-                  src={s.imagePreview}
+                  src={s.imageUrl || s.imagePreview}
                   alt={s.title}
                   className="w-24 h-16 object-cover rounded"
                 />

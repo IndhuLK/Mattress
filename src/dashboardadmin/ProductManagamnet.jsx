@@ -49,9 +49,7 @@ const ProductManagement = ({ onAddNew, onEditProduct }) => {
   return (
     <div className="p-8 bg-gray-100 min-h-screen">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold text-gray-800">
-          Product Management
-        </h1>
+        <h1 className="text-2xl font-bold text-gray-800">Product Management</h1>
 
         {/* ➕ Add Product */}
         <button
@@ -92,7 +90,11 @@ const ProductManagement = ({ onAddNew, onEditProduct }) => {
               className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-lg transition"
             >
               <img
-                src={item.image || (item.images && item.images[0]) || "/images/default.jpg"}
+                src={
+                  item.image ||
+                  (item.images && item.images.length > 0 && item.images[0]) ||
+                  "https://via.placeholder.com/400x300?text=No+Image"
+                }
                 alt={item.title}
                 className="h-48 w-full object-cover"
               />

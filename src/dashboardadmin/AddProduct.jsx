@@ -136,10 +136,10 @@ const AddProduct = ({ editData, onBack }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!product.type) {
-      alert("⚠️ Please select a Product Type before saving.");
-      return;
-    }
+    if (uploading) {
+    alert("Please wait until images finish uploading!");
+    return;
+  }
 
     try {
       const key =
@@ -161,13 +161,14 @@ const AddProduct = ({ editData, onBack }) => {
       } else {
         // Add new product
         await addDoc(collection(db, key), {
-          ...product,
-          numericPrice: parseFloat(product.price) || 0,
-          rating: 4.5,
-          reviewCount: 0,
-          image: product.images[0] || "/images/default.jpg",
-          createdAt: serverTimestamp(),
-        });
+  ...product,
+  numericPrice: parseFloat(product.price) || 0,
+  rating: 4.5,
+  reviewCount: 0,
+  image: product.images && product.images.length > 0 ? product.images[0] : "",
+  images: product.images || [],
+  createdAt: serverTimestamp(),
+});
         alert("✅ Product added successfully!");
       }
 

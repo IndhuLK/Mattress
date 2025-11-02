@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from "react";
 import { Star, ShoppingCart, Check } from "lucide-react";
-import image1 from "/src/assets/image1.jpg";
+import image1 from "/src/assets/Pillow1.jpeg";
 import image2 from "/src/assets/image2.jpg";
-import image3 from "/src/assets/image3.jpg";
+import image3 from "/src/assets/Image1.jpg";
 import image4 from "/src/assets/image4.jpg";
 import AOS from "aos";
 import "aos/dist/aos.css";
+import { useNavigate } from "react-router-dom";
 
 // --- BounceComfort Card ---
 const BounceComfort = ({
@@ -18,6 +19,7 @@ const BounceComfort = ({
   badge = "",
 }) => {
   const [isHovered, setIsHovered] = useState(false);
+   const navigate = useNavigate();
 
   return (
     <div
@@ -101,6 +103,7 @@ const BounceComfort = ({
             ₹{price.toLocaleString()}
           </p>
           <button
+          onClick={() => navigate("/Pillow")}
             className="flex items-center gap-2 px-4 py-1 text-sm 
           font-semibold text-white hover:bg-[#3d5f12] bg-[#4f3b30] rounded  
           transition-transform duration-300 hover:scale-105 cursor-pointer"
@@ -136,7 +139,7 @@ const ProductPage = () => {
         {
       id: 1,
       image: image1,
-      name: "Ilavam Panju Natural Comfort Mattress",
+      name: "Ilavam Panju Natural Comfort Pillow",
       price: 13000,
       rating: 4.8,
       reviews: 1224,
@@ -166,7 +169,7 @@ const ProductPage = () => {
     {
       id: 3,
       image: image3,
-      name: "Cloud Kapok Dream Mattress",
+      name: "Cloud Kapok Dream Pillow",
       price: 13000,
       rating: 4.9,
       reviews: 1456,

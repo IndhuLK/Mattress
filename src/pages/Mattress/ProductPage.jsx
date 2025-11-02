@@ -4,37 +4,12 @@ import "aos/dist/aos.css";
 import FilterSection from "../../components/FilterSection";
 import { ShoppingCart, Star } from "lucide-react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
-import { db } from "/src/config/firebase"; // ✅ Firebase config file
+import { db } from "/src/config/firebase";
 import { collection, getDocs } from "firebase/firestore";
 import mattress from "/src/assets/img1.jpg";
 
 // ✅ Default (local) base products
-const baseProducts = [
-  {
-    id: 1,
-    title: "Therapeutic Memory Foam",
-    numericPrice: 949,
-    image: mattress,
-    brand: "Super Mattress",
-    size: "King",
-    description:
-      "Relieves back pain and supports spine alignment. Premium memory foam layers provide a restful sleep experience.",
-    rating: 4.5,
-    reviewCount: 120,
-  },
-  {
-    id: 2,
-    title: "Premium Innerspring Twin",
-    numericPrice: 599,
-    image: "/images/innerspring.jpg",
-    brand: "CozyRest",
-    size: "Queen",
-    description:
-      "A bouncy and supportive innerspring design with soft cushioning for superior comfort.",
-    rating: 4.2,
-    reviewCount: 80,
-  },
-];
+const baseProducts = [];
 
 // 🧩 Utility: Generate slug from title
 const slugify = (text) =>
@@ -50,6 +25,16 @@ const ProductPage = () => {
   const [visibleCount, setVisibleCount] = useState(9);
   const { pathname } = useLocation();
   const navigate = useNavigate();
+
+  // ✅ Filter state
+  const [filters, setFilters] = useState({
+    availability: "all",
+    minPrice: 0,
+    maxPrice: 75000,
+    firmness: "",
+    size: "",
+    type: []
+  });
 
   // ✅ Fetch Firebase products
   useEffect(() => {
@@ -82,7 +67,8 @@ const ProductPage = () => {
       const numeric = p.numericPrice || parseFloat(p.price) || 0;
       const oldNumeric = Math.round(numeric * 1.25);
       const slug =
-        p.sku || `${slugify(p.title || "product")}-${numeric}-${p.size || "na"}`;
+        p.sku ||
+        `${slugify(p.title || "product")}-${numeric}-${p.size || "na"}`;
       return {
         ...p,
         id: p.id || index + 1,
@@ -94,8 +80,35 @@ const ProductPage = () => {
     }
   );
 
+  // 🎯 Filter products
+  const filteredProducts = combinedProducts.filter((product) => {
+    // Availability filter
+    if (filters.availability === "in-stock" && product.stock === 0) return false;
+
+    // Price filter
+    if (product.numericPrice < filters.minPrice || product.numericPrice > filters.maxPrice) return false;
+
+    // Firmness filter
+    if (filters.firmness && product.firmness?.toLowerCase().trim() !== filters.firmness.toLowerCase().trim()) return false;
+// size
+    if (
+  filters.size.length > 0 &&
+  !filters.size.some(
+    (s) =>
+      s.toLowerCase().trim() === String(product.size || "").toLowerCase().trim()
+  )
+)
+  return false;
+
+
+    // Type filter (multiple selection)
+    if (filters.type.length > 0 && !filters.type.some(t => t.toLowerCase().trim() === product.type?.toLowerCase().trim())) return false;
+
+    return true;
+  });
+
   // 🧠 Sorting
-  const sortedProducts = [...combinedProducts].sort((a, b) => {
+  const sortedProducts = [...filteredProducts].sort((a, b) => {
     if (sortOption === "Price: Low to High")
       return a.numericPrice - b.numericPrice;
     if (sortOption === "Price: High to Low")
@@ -124,7 +137,12 @@ const ProductPage = () => {
   return (
     <div className="flex flex-col md:flex-row w-full p-6 gap-6">
       {/* Sidebar */}
-      <FilterSection filterOpen={filterOpen} setFilterOpen={setFilterOpen} />
+      <FilterSection 
+        filterOpen={filterOpen} 
+        setFilterOpen={setFilterOpen}
+        filters={filters}
+        setFilters={setFilters}
+      />
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col gap-4">
@@ -183,22 +201,25 @@ const ProductPage = () => {
                   className="w-full h-56 object-cover transition-transform duration-700 group-hover:scale-110"
                 />
                 {/* Discount badge */}
+<div className="mt-2 flex items-center gap-2 justify-center space-y-2">
+  <span className="text-[#3d5f12] font-bold text-lg">
+    {product.price}
+  </span>
+  <span className="text-gray-400 line-through text-sm">
+    {product.oldPrice}
+  </span>
                 <div
-                  className="absolute top-1 left-0 text-[#f70808] text-sm font-semibold px-2 py-1 
-                  rounded bg-cover bg-center flex items-center justify-center"
-                  style={{
-                    backgroundImage: "url('/src/assets/cloud-im.png')",
-                    width: "85px",
-                    height: "45px",
-                  }}
+                  className="absolute top-2 left-2 bg-teal-700 text-white text-sm font-semibold 
+                    px-3 py-1 rounded-lg flex items-center justify-center shadow-md"
                 >
                   {Math.round(
-                    ((parseFloat(product.oldPrice.replace(/[₹ ,]/g, "")) -
-                      product.numericPrice) /
-                      parseFloat(product.oldPrice.replace(/[₹ ,]/g, ""))) *
-                      100
-                  )}
-                  % OFF
+      ((parseFloat(product.oldPrice.replace(/[₹ ,]/g, "")) -
+        product.numericPrice) /
+        parseFloat(product.oldPrice.replace(/[₹ ,]/g, ""))) *
+        100
+    )}
+    % OFF
+                </div>
                 </div>
               </div>
 
@@ -230,10 +251,7 @@ const ProductPage = () => {
 
                 {/* Button */}
                 <button
-                  onClick={() =>
-                   navigate(`/mattress/${product.sku}`)
-                    
-                  }
+                  onClick={() => navigate(`/mattress/${product.sku}`)}
                   className="flex items-center justify-center gap-2 mt-4 border 
                     border-[#4e7265] px-4 py-1 rounded-md hover:bg-[#3d5f12] bg-[#745e46] 
                     transition text-white text-sm font-semibold cursor-pointer shadow-[#4e7265]

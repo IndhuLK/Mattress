@@ -1,9 +1,12 @@
 import React, { useState } from "react";
 import { ChevronDown, ChevronUp, X } from "lucide-react";
 
-const FilterSection = ({ filterOpen, setFilterOpen }) => {
-  const [minPrice, setMinPrice] = useState(0);
-  const [maxPrice, setMaxPrice] = useState(75000);
+const FilterSection = ({ filterOpen, setFilterOpen, filters, setFilters }) => {
+  const [minPrice, setMinPrice] = useState(filters.minPrice);
+  const [maxPrice, setMaxPrice] = useState(filters.maxPrice);
+  const [tempFirmness, setTempFirmness] = useState(filters.firmness);
+  const [tempSize, setTempSize] = useState(filters.size);
+  const [tempType, setTempType] = useState(filters.type);
 
   // State to control each dropdown
   const [openSections, setOpenSections] = useState({
@@ -52,16 +55,24 @@ const FilterSection = ({ filterOpen, setFilterOpen }) => {
           )}
         </button>
         {openSections.availability && (
-          <div className="mt-2 space-y-1 text-xs">
+          <div className="mt-2 space-y-2 text-xs">
             <label className="flex items-center gap-2">
-              <input type="radio" name="stock" defaultChecked />
-              In stock{" "}
-              <span className="text-gray-400 text-sm ml-auto">(24)</span>
+              <input 
+                type="radio" 
+                name="stock" 
+                checked={filters.availability === "in-stock"}
+                onChange={() => setFilters({...filters, availability: "in-stock"})}
+              />
+              In stock
             </label>
             <label className="flex items-center gap-2">
-              <input type="radio" name="stock" />
-              Out of stock{" "}
-              <span className="text-gray-400 text-sm ml-auto">(0)</span>
+              <input 
+                type="radio" 
+                name="stock" 
+                checked={filters.availability === "all"}
+                onChange={() => setFilters({...filters, availability: "all"})}
+              />
+              All products
             </label>
           </div>
         )}
@@ -159,21 +170,19 @@ const FilterSection = ({ filterOpen, setFilterOpen }) => {
             {/* Apply Button */}
             <div className="text-center">
               <button
-                onClick={() =>
-                  alert(
-                    `Filtering products between ₹${minPrice} and ₹${maxPrice}`
-                  )
-                }
+                onClick={() => {
+                  setFilters({...filters, minPrice, maxPrice});
+                }}
                 className="bg-[#3d5f12] text-white px-5 py-1.5 rounded-lg text-xs font-medium hover:bg-[#2d460f] transition"
               >
-                Apply
+                Apply Price
               </button>
             </div>
           </div>
         )}
       </div>
 
-      {/* -------- Firmness -------- */}
+      {/* -------- Firmness -------- 
       <div className="mb-4 border-b pb-2 border-gray-200">
         <button
           onClick={() => toggleSection("firmness")}
@@ -188,46 +197,69 @@ const FilterSection = ({ filterOpen, setFilterOpen }) => {
           )}
         </button>
         {openSections.firmness && (
-          <div className="mt-2 space-y-1 text-xs">
+          <div className="mt-2 space-y-2 text-xs">
             {["Soft", "Medium", "Firm"].map((level, i) => (
               <label key={i} className="flex items-center gap-2">
-                <input type="radio" name="firmness" />
+                <input 
+                  type="radio" 
+                  name="firmness" 
+                  checked={tempFirmness === level}
+                  onChange={() => setTempFirmness(level)}
+                />
                 {level}
               </label>
             ))}
+            <button
+              onClick={() => setFilters({...filters, firmness: tempFirmness})}
+              className="w-full bg-[#3d5f12] text-white px-4 py-1.5 rounded-lg text-xs font-medium hover:bg-[#2d460f] transition mt-2"
+            >
+              Apply Firmness
+            </button>
           </div>
         )}
-      </div>
+      </div>*/}
 
-      {/* -------- Size -------- */}
-      <div className="mb-4 border-b pb-2 border-gray-200">
-        <button
-          onClick={() => toggleSection("size")}
-          className="w-full flex justify-between items-center text-left font-medium
-          text-sm"
-        >
-          <span>SIZE</span>
-          {openSections.size ? (
-            <ChevronUp size={18} />
-          ) : (
-            <ChevronDown size={18} />
-          )}
-        </button>
-        {openSections.size && (
-          <div className="mt-2 space-y-1 text-xs">
-            {["Twin", "Full", "Queen", "King", "California King"].map(
-              (size, i) => (
-                <label key={i} className="flex items-center gap-2">
-                  <input type="radio" name="size" />
-                  {size}
-                </label>
-              )
-            )}
-          </div>
-        )}
-      </div>
+      {/* -------- Size (MULTIPLE SELECT) -------- */}
+<div className="mb-4 border-b pb-2 border-gray-200">
+  <button
+    onClick={() => toggleSection("size")}
+    className="w-full flex justify-between items-center text-left font-medium text-sm"
+  >
+    <span>SIZE</span>
+    {openSections.size ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+  </button>
 
-      {/* -------- Type -------- */}
+  {openSections.size && (
+    <div className="mt-2 space-y-2 text-xs">
+      {["Twin", "Full", "Queen", "King", "California King"].map((size, i) => (
+        <label key={i} className="flex items-center gap-2">
+          <input
+            type="checkbox"
+            checked={tempSize.includes(size)}
+            onChange={(e) => {
+              if (e.target.checked) {
+                setTempSize([...tempSize, size]);
+              } else {
+                setTempSize(tempSize.filter((s) => s !== size));
+              }
+            }}
+          />
+          {size}
+        </label>
+      ))}
+
+      <button
+        onClick={() => setFilters({ ...filters, size: tempSize })}
+        className="w-full bg-[#3d5f12] text-white px-4 py-1.5 rounded-lg text-xs font-medium hover:bg-[#2d460f] transition mt-2"
+      >
+        Apply Size
+      </button>
+    </div>
+  )}
+</div>
+
+
+      {/* -------- Type --------
       <div className="mb-4 border-b pb-2 border-gray-200">
         <button
           onClick={() => toggleSection("type")}
@@ -241,7 +273,7 @@ const FilterSection = ({ filterOpen, setFilterOpen }) => {
           )}
         </button>
         {openSections.type && (
-          <div className="mt-2 space-y-1 text-xs">
+          <div className="mt-2 space-y-2 text-xs">
             {[
               "Memory Foam",
               "Hybrid",
@@ -251,18 +283,48 @@ const FilterSection = ({ filterOpen, setFilterOpen }) => {
               "Coir",
             ].map((type, i) => (
               <label key={i} className="flex items-center gap-2">
-                <input type="checkbox" />
+                <input 
+                  type="checkbox"
+                  checked={tempType.includes(type)}
+                  onChange={(e) => {
+                    if (e.target.checked) {
+                      setTempType([...tempType, type]);
+                    } else {
+                      setTempType(tempType.filter(t => t !== type));
+                    }
+                  }}
+                />
                 {type}
               </label>
             ))}
+            <button
+              onClick={() => setFilters({...filters, type: tempType})}
+              className="w-full bg-[#3d5f12] text-white px-4 py-1.5 rounded-lg text-xs font-medium hover:bg-[#2d460f] transition mt-2"
+            >
+              Apply Type
+            </button>
           </div>
         )}
-      </div>
+      </div> */}
 
       {/* -------- Clear Filters -------- */}
       <div className="pt-3">
         <button
-          onClick={() => window.location.reload()}
+          onClick={() => {
+            setFilters({
+              availability: "all",
+              minPrice: 0,
+              maxPrice: 75000,
+              firmness: "",
+              size: "",
+              type: []
+            });
+            setMinPrice(0);
+            setMaxPrice(75000);
+            setTempFirmness("");
+            setTempSize("");
+            setTempType([]);
+          }}
           className="w-full border border-gray-400 text-gray-700 rounded-md py-2 hover:bg-gray-100 transition"
         >
           Clear all filters
