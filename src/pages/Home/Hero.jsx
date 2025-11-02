@@ -1,12 +1,17 @@
-import React, { useEffect, useState } from "react";
-import { ArrowRight, Truck, Package, Wallet, BadgeCheck } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { Swiper, SwiperSlide } from "swiper/react";
+import { Navigation, Pagination, Autoplay } from "swiper/modules";
+import { Truck, Package, Wallet, BadgeCheck } from "lucide-react";
+import "swiper/css";
+import "swiper/css/navigation";
+import "swiper/css/pagination";
 import AOS from "aos";
 import "aos/dist/aos.css";
-import { useSlider } from "/src/dashboardadmin/SliderContext";
+import { collection, getDocs } from "firebase/firestore";
+import { db } from "/src/config/firebase";
 
 const Hero = () => {
-  const { sliderData } = useSlider();
-  if (!sliderData) return null;
+  const [slides, setSlides] = useState([]);
   const [timeLeft, setTimeLeft] = useState({
     days: 0,
     hours: 0,
@@ -15,28 +20,67 @@ const Hero = () => {
   });
 
   useEffect(() => {
-    AOS.init({ duration: 1000, once: true });
+  const fetchSlides = async () => {
+    const snapshot = await getDocs(collection(db, "sliders"));
+    const list = snapshot.docs.map((doc) => doc.data());
+    setSlides(list);
+  };
+  fetchSlides();
+}, []);
+
+  // ✅ Load sliders from localStorage (from SliderManagement.jsx)
+  useEffect(() => {
+    const storedSliders = JSON.parse(localStorage.getItem("sliders") || "[]");
+    if (storedSliders.length > 0) {
+      setSlides(storedSliders);
+    } else {
+      // fallback default slides
+      setSlides([
+        {
+          imagePreview: "/src/assets/mattress1.jpg",
+          title: "Welcome to Our Store",
+          description: "Best deals and discounts just for you!",
+          button: "Shop Now",
+          offerTitle: "Special Offer!",
+          offerText: "Hurry! Limited Time Offer",
+          days: 0,
+          hours: 5,
+          minutes: 0,
+          seconds: 0,
+        },
+      ]);
+    }
   }, []);
 
-  // ⏰ Countdown
+  // ✅ Countdown Timer (from first slide)
   useEffect(() => {
-    const targetDate = new Date(sliderData.countdownDate);
-    const interval = setInterval(() => {
-      const now = new Date();
-      const diff = targetDate - now;
-      if (diff <= 0) {
-        clearInterval(interval);
+    if (slides.length === 0) return;
+
+    const { days, hours, minutes, seconds } = slides[0];
+    const totalSeconds =
+      (days || 0) * 86400 + (hours || 0) * 3600 + (minutes || 0) * 60 + (seconds || 0);
+
+    let remaining = totalSeconds;
+    const timer = setInterval(() => {
+      if (remaining <= 0) {
+        clearInterval(timer);
         setTimeLeft({ days: 0, hours: 0, minutes: 0, seconds: 0 });
       } else {
-        const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-        const hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
-        const minutes = Math.floor((diff / 1000 / 60) % 60);
-        const seconds = Math.floor((diff / 1000) % 60);
-        setTimeLeft({ days, hours, minutes, seconds });
+        remaining -= 1;
+        const d = Math.floor(remaining / 86400);
+        const h = Math.floor((remaining % 86400) / 3600);
+        const m = Math.floor((remaining % 3600) / 60);
+        const s = remaining % 60;
+        setTimeLeft({ days: d, hours: h, minutes: m, seconds: s });
       }
     }, 1000);
-    return () => clearInterval(interval);
-  }, [sliderData.countdownDate]);
+
+    return () => clearInterval(timer);
+  }, [slides]);
+
+  useEffect(() => {
+    AOS.init({ duration: 1000, once: true });
+  }, []);
 
   const features = [
     { icon: <Truck size={24} />, title: "Free & Fast Shipping" },
@@ -46,49 +90,69 @@ const Hero = () => {
   ];
 
   return (
-    <div>
-      <section className="relative h-[700px] flex items-center justify-center overflow-hidden md:rounded-bl-[255px]">
-        {/* Background */}
-        <div
-          className="absolute inset-0 bg-cover bg-center"
-          style={{ backgroundImage: `url(${sliderData.image})` }}
-        />
-        <div className="absolute inset-0 bg-black/40" />
+    <>
+      {/* ---------- HERO SECTION ---------- */}
+      <div className="relative w-full h-[80vh] overflow-hidden rounded-bl-[255px]">
+        <Swiper
+          modules={[Navigation, Pagination, Autoplay]}
+          navigation={false}
+          pagination={{ clickable: true }}
+          autoplay={{ delay: 4000, disableOnInteraction: false }}
+          loop={true}
+          className="w-full h-full"
+        >
+          {slides.map((slide, index) => (
+            <SwiperSlide key={index}>
+              <div
+                className="w-full h-full bg-cover bg-center flex flex-col justify-center 
+                items-center text-center relative"
+                style={{
+                  backgroundImage: `url(${slide.imagePreview})`,
+                }}
+              >
+                {/* Overlay */}
+                <div className="absolute inset-0 bg-black/40"></div>
 
-        {/* Content */}
-        <div className="relative z-10 text-center text-white px-4 max-w-3xl mx-auto">
-          <h1 className="text-xl md:text-4xl font-bold mb-4 drop-shadow-2xl">
-            {sliderData.title}
-          </h1>
-          <p className="text-lg md:text-xl mb-8 text-white/90 font-medium drop-shadow-md">
-            {sliderData.description}
-          </p>
-          <button className="flex items-center justify-center gap-2 mx-auto bg-[#3d5f12] 
-          hover:bg-[#4f3b30] text-white px-8 py-2 rounded-md transition cursor-pointer hover:scale-105">
-            {sliderData.buttonText} <ArrowRight className="w-5 h-5" />
-          </button>
-        </div>
+                {/* Text Content */}
+                <div className="relative z-10 text-white px-6" data-aos="fade-up">
+                  <h1 className="text-4xl md:text-5xl font-bold mb-4">
+                    {slide.title}
+                  </h1>
+                  <p className="text-lg md:text-xl mb-6">{slide.description}</p>
+                  <button
+                    className="bg-green-600 hover:bg-green-700 text-white px-6 py-3
+                     rounded-lg font-medium"
+                    data-aos="zoom-in"
+                  >
+                    {slide.button}
+                  </button>
+                </div>
+              </div>
+            </SwiperSlide>
+          ))}
+        </Swiper>
 
-        {/* Offer Section */}
-        <div className="absolute bottom-4 left-0 right-0 flex flex-col sm:flex-row 
-        items-center justify-center px-6 gap-10">
-          <span className="text-white font-bold text-2xl bg-[#2d517a] px-4 py-1 rounded-lg">
-            {sliderData.offerTitle}
+        {/* ---------- STATIC OFFER BAR ---------- */}
+        <div className="absolute bottom-8 left-1/5  flex 
+        items-center gap-3  text-gray-900 px-6 py-3 rounded-lg shadow-lg text-sm
+         md:text-base font-semibold z-20 justify-between ">
+          <span className="bg-blue-800 text-white px-2 py-1 rounded-md text-sm md:text-base">
+            {slides[0]?.offerTitle || "Special Offer!"}
           </span>
-          <span className="text-[#e1ebd5] font-bold text-xl">
-            {sliderData.discountText}
+          <span className="text-white font-bold text-lg">
+            {slides[0]?.offerText || "Hurry! Limited Time Offer"}
           </span>
-          <span className="bg-[#4f3b30] px-4 py-1 rounded-md text-xs sm:text-sm text-white">
+          <span className=" ml-2 font-medium bg-yellow-700 text-white px-4 py-1 rounded-lg">
             {String(timeLeft.days).padStart(2, "0")}d :{" "}
             {String(timeLeft.hours).padStart(2, "0")}h :{" "}
             {String(timeLeft.minutes).padStart(2, "0")}m :{" "}
             {String(timeLeft.seconds).padStart(2, "0")}s
           </span>
         </div>
-      </section>
+      </div>
 
-      {/* Features */}
-      <div className="bg-white py-8">
+      {/* ---------- FEATURES SECTION ---------- */}
+      <div className="bg-white py-10">
         <div className="max-w-6xl mx-auto grid grid-cols-2 sm:grid-cols-4 gap-4 px-4">
           {features.map((f, i) => (
             <div
@@ -101,7 +165,7 @@ const Hero = () => {
           ))}
         </div>
       </div>
-    </div>
+    </>
   );
 };
 

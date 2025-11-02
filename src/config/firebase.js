@@ -9,7 +9,7 @@ const firebaseConfig = {
   apiKey: "AIzaSyDXieY-_JwrCFo5DV7fWyFpFNfwEql_7jY",
   authDomain: "mattress-31654.firebaseapp.com",
   projectId: "mattress-31654",
-  storageBucket: "mattress-31654.appspot.com", // 🔧 FIXED (.app → .appspot.com)
+  storageBucket: "mattress-31654.firebasestorage.app", // 🔧 FIXED (.app → .appspot.com)
   messagingSenderId: "978938654809",
   appId: "1:978938654809:web:ba7b3773e2954d93c34148",
   measurementId: "G-WK016PKFQD"
