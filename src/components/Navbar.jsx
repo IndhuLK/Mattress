@@ -11,13 +11,17 @@ import {
   Trash2,
 } from "lucide-react";
 import Logo from "/src/assets/logo.jpg";
+import { db } from "/src/config/firebase";
+import { collection, addDoc, serverTimestamp } from "firebase/firestore";
+
+import { useCart } from "/src/components/CartContext"; // ✅ Import useCart
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [isProductOpen, setIsProductOpen] = useState(false);
   const [cartOpen, setCartOpen] = useState(false);
-  const [cart, setCart] = useState([]);
-  const navigate = useNavigate(); // ✅ Initialize navigate
+  const { cart, removeFromCart } = useCart(); // ✅ Use context
+  const navigate = useNavigate();
 
   const navLinks = [
     { name: "Home", path: "/" },
@@ -32,29 +36,10 @@ const Navbar = () => {
     { name: "Contact", path: "/contact" },
   ];
 
-  // ✅ Load cart on start
-  useEffect(() => {
-    const storedCart = JSON.parse(localStorage.getItem("cart")) || [];
-    setCart(storedCart);
-  }, []);
-
-  // ✅ Update cart when “cartUpdated” event triggered
-  useEffect(() => {
-    const updateCart = () => {
-      const storedCart = JSON.parse(localStorage.getItem("cart")) || [];
-      setCart(storedCart);
-    };
-
-    window.addEventListener("cartUpdated", updateCart);
-    return () => window.removeEventListener("cartUpdated", updateCart);
-  }, []);
-
   const handleMenuClick = () => setIsOpen(false);
 
   const handleDeleteItem = (id) => {
-    const updated = cart.filter((item) => item.id !== id);
-    setCart(updated);
-    localStorage.setItem("cart", JSON.stringify(updated));
+    removeFromCart(id); // ✅ Use context function
   };
 
   // ✅ Navigate to product details when clicking inside cart
@@ -64,6 +49,92 @@ const Navbar = () => {
       navigate(`/pillow/${item.sku}`);
     } else {
       navigate(`/mattress/${item.sku}`);
+    }
+  };
+
+  // Generate unique order ID
+  const generateOrderId = () => {
+    const timestamp = Date.now();
+    const random = Math.floor(Math.random() * 1000);
+    return `WA-${timestamp}-${random}`;
+  };
+
+  // Handle Checkout - Save cart to Firestore then open WhatsApp
+  const handleCheckout = async () => {
+    if (cart.length === 0) return;
+
+    try {
+      // Generate unique IDs
+      const orderId = generateOrderId();
+      const invoiceId = `INV-${Date.now()}`;
+
+      // Calculate total
+      const total = cart.reduce((sum, item) => {
+        const price = typeof item.price === 'string'
+          ? parseFloat(item.price.replace(/[₹ ,]/g, ""))
+          : item.price;
+        const quantity = item.quantity || 1;
+        return sum + (price * quantity);
+      }, 0);
+
+      // Prepare order data for cart checkout (multiple items)
+      const orderData = {
+        orderId,
+        invoiceId,
+        items: cart.map(item => ({
+          title: item.title,
+          sku: item.sku,
+          price: typeof item.price === 'string' ? item.price : `₹${item.price}`,
+          image: item.images?.[0] || item.image,
+          size: item.selectedSize || item.size || "N/A",
+          thickness: item.selectedThickness || item.thickness || "N/A",
+          quantity: item.quantity || 1
+        })),
+        itemCount: cart.length,
+        total,
+        customer: {
+          name: "",
+          phone: "",
+          address: ""
+        },
+        status: "WhatsApp Pending",
+        orderSource: "WhatsApp Cart",
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp()
+      };
+
+      // Save to Firestore
+      await addDoc(collection(db, "whatsappOrders"), orderData);
+
+      // Prepare WhatsApp message for cart items
+      const phoneNumber = "919500694734";
+      let itemsList = "";
+      cart.forEach((item, index) => {
+        const itemPrice = typeof item.price === 'string'
+          ? item.price
+          : `₹${item.price}`;
+        const quantity = item.quantity || 1;
+        itemsList += `${index + 1}. ${item.title}\n`;
+        itemsList += `   📏 Size: ${item.selectedSize || item.size || "N/A"}\n`;
+        itemsList += `   📐 Thickness: ${item.selectedThickness || item.thickness || "N/A"}\n`;
+        itemsList += `   🔢 Qty: ${quantity} × ${itemPrice}\n\n`;
+      });
+
+      const message = `🛒 *New Cart Order from E-Mattress*\n\n` +
+        `📋 *Order ID:* ${orderId}\n` +
+        `🧾 *Invoice:* ${invoiceId}\n\n` +
+        `📦 *Items (${cart.length}):*\n${itemsList}` +
+        `💰 *Total Amount:* ₹${total.toLocaleString()}\n\n` +
+        `I would like to proceed with this order.`;
+
+      const encodedMessage = encodeURIComponent(message);
+      window.open(`https://wa.me/${phoneNumber}?text=${encodedMessage}`, "_blank");
+
+      alert("✅ Order saved! Opening WhatsApp...");
+      setCartOpen(false);
+    } catch (error) {
+      console.error("Error saving cart order:", error);
+      alert("❌ Failed to create order. Please try again.");
     }
   };
 
@@ -167,9 +238,8 @@ const Navbar = () => {
                     {link.name}
                     <ChevronDown
                       size={16}
-                      className={`transform transition-transform ${
-                        isProductOpen ? "rotate-180" : ""
-                      }`}
+                      className={`transform transition-transform ${isProductOpen ? "rotate-180" : ""
+                        }`}
                     />
                   </button>
                   {isProductOpen && (
@@ -203,46 +273,138 @@ const Navbar = () => {
       </div>
 
       {/* 🔸 CART DRAWER */}
-      {cartOpen && (
-        <div className="absolute right-0 top-full bg-white shadow-xl border border-gray-200 
-        w-80 max-h-[80vh] overflow-y-auto z-[9999] rounded-lg p-4">
-          <h3 className="text-lg font-bold mb-3 text-[#36491f]">Your Cart</h3>
-          {cart.length === 0 ? (
-            <p className="text-gray-600">Your cart is empty </p>
-          ) : (
-            cart.map((item) => (
-              <div
-                key={item.sku}
-                className="flex items-center justify-between mb-3 border-b pb-2 cursor-pointer
-                 hover:bg-gray-50 rounded-md"
-                onClick={() => handleProductClick(item)} // ✅ Added
-              >
-                <div className="flex items-center gap-3">
-                  <img
-                    src={item.image}
-                    alt={item.title}
-                    className="w-14 h-14 rounded-md object-cover"
-                  />
-                  <div>
-                    <p className="font-semibold text-[#36491f]">
-                      {item.title}
-                    </p>
-                    <p className="text-sm text-gray-600">₹{item.price}</p>
+      <div
+        className={`fixed inset-0 z-[9999] transition-opacity duration-300 ${cartOpen
+          ? "opacity-100 pointer-events-auto"
+          : "opacity-0 pointer-events-none"
+          }`}
+      >
+        {/* Backdrop */}
+        <div
+          className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+          onClick={() => setCartOpen(false)}
+        ></div>
+
+        {/* Drawer */}
+        <div
+          className={`absolute right-0 top-0 h-full w-full max-w-md bg-white shadow-2xl transform transition-transform duration-300 flex flex-col ${cartOpen ? "translate-x-0" : "translate-x-full"
+            }`}
+        >
+          {/* Header */}
+          <div className="flex items-center justify-between p-5 border-b border-gray-100">
+            <h2 className="text-xl font-bold text-[#36491f]">
+              Your Cart ({cart.length})
+            </h2>
+            <button
+              onClick={() => setCartOpen(false)}
+              className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+            >
+              <X size={24} className="text-gray-500" />
+            </button>
+          </div>
+
+          {/* Cart Items */}
+          <div className="flex-1 overflow-y-auto p-5 space-y-4">
+            {cart.length === 0 ? (
+              <div className="flex flex-col items-center justify-center h-full text-center space-y-4">
+                <ShoppingCart size={64} className="text-gray-200" />
+                <p className="text-gray-500 text-lg">Your cart is empty</p>
+                <button
+                  onClick={() => setCartOpen(false)}
+                  className="px-6 py-2 bg-[#745e46] text-white rounded-lg hover:bg-[#604d3a] transition-colors"
+                >
+                  Continue Shopping
+                </button>
+              </div>
+            ) : (
+              cart.map((item) => (
+                <div
+                  key={item.sku}
+                  className="flex gap-4 p-3 bg-gray-50 rounded-xl border border-gray-100 hover:border-[#745e46]/30 transition-colors group cursor-pointer"
+                  onClick={() => handleProductClick(item)}
+                >
+                  <div className="w-24 h-24 flex-shrink-0 bg-white rounded-lg overflow-hidden border border-gray-200">
+                    <img
+                      src={item.image}
+                      alt={item.title}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                  <div className="flex-1 flex flex-col justify-between py-1">
+                    <div>
+                      <h4 className="font-semibold text-gray-900 line-clamp-2">
+                        {item.title}
+                      </h4>
+                      {/* Old Price */}
+                      {(item.oldPrice || item.oldprice) && (
+                        <p className="text-sm text-gray-400 line-through">
+                          ₹{Number(item.oldPrice || item.oldprice).toLocaleString()}
+                        </p>
+                      )}
+
+                      {/* Stock Status */}
+                      <p
+                        className={`text-sm font-semibold mt-1 ${item.instock !== false ? "text-green-600" : "text-red-600"
+                          }`}
+                      >
+                        {item.instock !== false ? "In Stock" : "Out of Stock"}
+                      </p>
+                    </div>
+                    <div className="flex items-center justify-between mt-2">
+                      <span className="font-bold text-[#745e46] text-lg">
+                        ₹{Number(item.price).toLocaleString()}
+                      </span>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteItem(item.sku); // ✅ Use SKU
+                        }}
+                        className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-all opacity-0 group-hover:opacity-100"
+                        title="Remove item"
+                      >
+                        <Trash2 size={18} />
+                      </button>
+                    </div>
                   </div>
                 </div>
-                <Trash2
-                  size={18}
-                  className="text-red-500 cursor-pointer"
-                  onClick={(e) => {
-                    e.stopPropagation(); // ✅ prevent navigation when deleting
-                    handleDeleteItem(item.id);
-                  }}
-                />
+              ))
+            )}
+          </div>
+
+          {/* Footer */}
+          {cart.length > 0 && (
+            <div className="p-5 border-t border-gray-100 bg-gray-50">
+              <div className="space-y-3 mb-4">
+                <div className="flex justify-between text-gray-600">
+                  <span>Subtotal</span>
+                  <span>
+                    ₹
+                    {cart
+                      .reduce((total, item) => total + Number(item.price), 0)
+                      .toLocaleString()}
+                  </span>
+                </div>
+                <div className="flex justify-between text-lg font-bold text-[#36491f]">
+                  <span>Total</span>
+                  <span>
+                    ₹
+                    {cart
+                      .reduce((total, item) => total + Number(item.price), 0)
+                      .toLocaleString()}
+                  </span>
+                </div>
               </div>
-            ))
+              <button
+                onClick={handleCheckout}
+                className="w-full py-3.5 bg-[#36491f] text-white font-bold rounded-xl
+               hover:bg-[#2a3818] active:scale-[0.98] transition-all shadow-lg 
+               shadow-[#36491f]/20 flex items-center justify-center gap-2">
+                Checkout <span className="text-xl">→</span>
+              </button>
+            </div>
           )}
         </div>
-      )}
+      </div>
     </header>
   );
 };

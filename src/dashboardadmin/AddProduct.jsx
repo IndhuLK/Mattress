@@ -154,21 +154,25 @@ const AddProduct = ({ editData, onBack }) => {
         // Update existing product
         const docRef = doc(db, key, editId);
         await updateDoc(docRef, {
-          ...product,
-          updatedAt: serverTimestamp(),
-        });
+  ...product,
+  instock: product.stock === "InStock",   // 🔥 FIXED
+  updatedAt: serverTimestamp(),
+});
+
         alert("✅ Product updated successfully!");
       } else {
         // Add new product
         await addDoc(collection(db, key), {
   ...product,
+  instock: product.stock === "InStock",   // 🔥 FIXED
   numericPrice: parseFloat(product.price) || 0,
   rating: 4.5,
   reviewCount: 0,
-  image: product.images && product.images.length > 0 ? product.images[0] : "",
+  image: product.images?.[0] || "",
   images: product.images || [],
   createdAt: serverTimestamp(),
 });
+
         alert("✅ Product added successfully!");
       }
 
@@ -315,7 +319,7 @@ const AddProduct = ({ editData, onBack }) => {
             <div className="flex gap-2 mt-1">
               <input
                 type="text"
-                placeholder="Enter size (e.g. 72x36)"
+                placeholder="Enter size (e.g. king, queen, double, single)"
                 value={newSize}
                 onChange={(e) => setNewSize(e.target.value)}
                 className="flex-1 border rounded-md p-2"

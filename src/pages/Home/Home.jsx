@@ -8,6 +8,8 @@ import ThinkAbout from "./ThinkAbout";
 import SleepComfort from "./SleepComfort";
 import BenefitsSection from "./BenefitsSection";
 import OurServices from "./OurServices";
+import YoutubeVideos from "./YoutubeVideos";
+
 //[#745e46] [#607442]
 const Home = () => {
   return (
@@ -21,6 +23,7 @@ const Home = () => {
       <OurServices />
       <ThinkAbout />
       <SleepComfort />
+      <YoutubeVideos />
     </div>
   );
 };

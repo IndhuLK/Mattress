@@ -6,7 +6,7 @@ import { getStorage } from "firebase/storage";
 import { getAnalytics, isSupported } from "firebase/analytics";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyDXieY-_JwrCFo5DV7fWyFpFNfwEql_7jY",
+  apiKey: "AIzaSyDXieY-_JwrCFo5DV7fWyFpFNfwEql_7jY", 
   authDomain: "mattress-31654.firebaseapp.com",
   projectId: "mattress-31654",
   storageBucket: "mattress-31654.firebasestorage.app", // 🔧 FIXED (.app → .appspot.com)

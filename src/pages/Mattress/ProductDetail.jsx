@@ -8,12 +8,12 @@ import {
 } from "lucide-react";
 import { useParams } from "react-router-dom";
 import { db } from "/src/config/firebase"; // ✅ Adjust path
-import { collection, query, where, getDocs } from "firebase/firestore";
+import { collection, query, where, getDocs, addDoc, serverTimestamp } from "firebase/firestore";
 import { useCart } from "/src/components/CartContext";
 
 const ProductDetail = () => {
   const { sku } = useParams();
-    const { addToCart } = useCart();
+  const { addToCart } = useCart();
 
   // ✅ All Hooks MUST be here (top of component)
   const [product, setProduct] = useState(null);
@@ -25,7 +25,7 @@ const ProductDetail = () => {
     care: false,
     tips: false,
   });
-  const [selectedSize, setSelectedSize] = useState("King");
+  const [selectedSize, setSelectedSize] = useState("");
   const [quantity, setQuantity] = useState(1);
   const [selectedThickness, setSelectedThickness] = useState("");
 
@@ -33,11 +33,79 @@ const ProductDetail = () => {
     if (!product) return;
     addToCart({
       ...product,
+      instock: true, // ✅ Force in stock
+      oldPrice: product.oldPrice, // ✅ Ensure camelCase
       quantity,
       selectedSize,
       selectedThickness,
     });
     alert(`${product.title} added to cart!`);
+  };
+
+  // Generate unique order ID
+  const generateOrderId = () => {
+    const timestamp = Date.now();
+    const random = Math.floor(Math.random() * 1000);
+    return `WA-${timestamp}-${random}`;
+  };
+
+  // Handle Buy Now - Save order to Firestore then open WhatsApp
+  const handleBuyNow = async () => {
+    if (product.instock === false) return;
+
+    try {
+      // Generate unique IDs
+      const orderId = generateOrderId();
+      const invoiceId = `INV-${Date.now()}`;
+
+      // Prepare order data
+      const orderData = {
+        orderId,
+        invoiceId,
+        product: {
+          title: product.title,
+          sku: product.sku,
+          price: product.price,
+          image: product.images?.[0] || product.image,
+          size: selectedSize,
+          thickness: selectedThickness
+        },
+        quantity,
+        total: parseFloat(product.price.replace(/[₹ ,]/g, "")) * quantity,
+        customer: {
+          name: "",
+          phone: "",
+          address: ""
+        },
+        status: "WhatsApp Pending",
+        orderSource: "WhatsApp",
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp()
+      };
+
+      // Save to Firestore
+      await addDoc(collection(db, "whatsappOrders"), orderData);
+
+      // Prepare WhatsApp message
+      const phoneNumber = "919500694734";
+      const message = `🛒 *New Order from E-Mattress*\n\n` +
+        `📋 *Order ID:* ${orderId}\n` +
+        `🧾 *Invoice:* ${invoiceId}\n\n` +
+        `📦 *Product:* ${product.title}\n` +
+        `📏 *Size:* ${selectedSize}\n` +
+        `📐 *Thickness:* ${selectedThickness}\n` +
+        `🔢 *Quantity:* ${quantity}\n` +
+        `💰 *Total:* ₹${orderData.total.toLocaleString()}\n\n` +
+        `I would like to proceed with this order.`;
+
+      const encodedMessage = encodeURIComponent(message);
+      window.open(`https://wa.me/${phoneNumber}?text=${encodedMessage}`, "_blank");
+
+      alert("✅ Order saved! Opening WhatsApp...");
+    } catch (error) {
+      console.error("Error saving order:", error);
+      alert("❌ Failed to create order. Please try again.");
+    }
   };
 
   // ✅ Fetch product from Firestore
@@ -66,6 +134,29 @@ const ProductDetail = () => {
     fetchProduct();
   }, [sku]);
 
+  // ✅ Set initial selected size and thickness when product loads
+  useEffect(() => {
+    if (product) {
+      const sizes = Array.isArray(product.size)
+        ? product.size
+        : product.size
+          ? [product.size]
+          : [];
+      const thickness = Array.isArray(product.thickness)
+        ? product.thickness
+        : product.thickness
+          ? [product.thickness]
+          : [];
+
+      if (sizes.length > 0 && !selectedSize) {
+        setSelectedSize(sizes[0]);
+      }
+      if (thickness.length > 0 && !selectedThickness) {
+        setSelectedThickness(thickness[0]);
+      }
+    }
+  }, [product]);
+
   // ✅ JSON-LD Structured Data
   const productSchema = product && {
     "@context": "https://schema.org/",
@@ -91,7 +182,11 @@ const ProductDetail = () => {
       ? product.images
       : [product.image || "/images/default.jpg"];
 
-  const mattressSizes = ["Single", "Double", "Queen", "King"];
+  const mattressSizes = Array.isArray(product.size)
+    ? product.size
+    : product.size
+      ? [product.size]
+      : [];
   const thicknessOptions = Array.isArray(product.thickness)
     ? product.thickness
     : [product.thickness || ""];
@@ -122,11 +217,10 @@ const ProductDetail = () => {
                 key={idx}
                 src={img}
                 alt="Thumbnail"
-                className={`w-24 h-24 object-cover rounded-lg cursor-pointer transition border-2 ${
-                  selectedImage === idx
-                    ? "border-[#745e46] shadow-md"
-                    : "border-gray-300 hover:border-[#745e46]"
-                }`}
+                className={`w-24 h-24 object-cover rounded-lg cursor-pointer transition border-2 ${selectedImage === idx
+                  ? "border-[#745e46] shadow-md"
+                  : "border-gray-300 hover:border-[#745e46]"
+                  }`}
                 onClick={() => setSelectedImage(idx)}
               />
             ))}
@@ -148,7 +242,7 @@ const ProductDetail = () => {
                 <tbody>
                   <tr className="border-b border-gray-200 bg-gray-50">
                     <td className="px-4 py-2 font-medium">Material</td>
-                    <td className="px-4 py-2">Memory Foam + HR Foam</td>
+                    <td className="px-4 py-2">{product.material || "Memory Foam + HR Foam"}</td>
                   </tr>
                   <tr className="border-b border-gray-200">
                     <td className="px-4 py-2 font-medium">Firmness</td>
@@ -164,7 +258,7 @@ const ProductDetail = () => {
                   </tr>
                   <tr className="bg-gray-50">
                     <td className="px-4 py-2 font-medium">Warranty</td>
-                    <td className="px-4 py-2">10 Years</td>
+                    <td className="px-4 py-2">{product.warrantyTime || "10 Years"}</td>
                   </tr>
                 </tbody>
               </table>
@@ -201,7 +295,7 @@ const ProductDetail = () => {
                 ((product.oldPrice.replace(/[₹ ,]/g, "") -
                   product.price.replace(/[₹ ,]/g, "")) /
                   product.oldPrice.replace(/[₹ ,]/g, "")) *
-                  100
+                100
               )}
               % OFF
             </div>
@@ -210,16 +304,20 @@ const ProductDetail = () => {
             <div className="flex flex-col mt-4">
               <div className="flex items-baseline gap-2">
                 <p className="text-3xl font-bold text-[#3d5f12]">
-                  {product.price}
                 </p>
-                <p className="text-gray-400 line-through text-lg">
-                  {product.oldPrice}
-                </p>
+                {(product.oldPrice || product.oldprice) && (
+                  <p className="text-gray-400 line-through text-lg">
+                    {product.oldPrice || product.oldprice}
+                  </p>
+                )}
               </div>
-              <p className="text-gray-500 text-sm mt-1">In Stock</p>
+              <p className={`text-sm font-semibold mt-1 ${product.instock !== false ? "text-green-600" : "text-red-600"}`}>
+                {product.instock !== false ? "In Stock" : "Out of Stock"}
+              </p>
             </div>
           </div>
           <hr className="my-2 border-gray-200" />
+
           {/* Quantity Selector */}
           <div className="mt-2 flex items-center gap-4">
             <p className="font-medium text-lg">Quantity:</p>
@@ -246,30 +344,28 @@ const ProductDetail = () => {
               </button>
             </div>
           </div>
+
           {/* Add to Cart & Buy Now */}
           <div className="flex gap-4 text-sm mt-3">
             <button
               onClick={() => handleAddToCart(product)}
-              className="flex items-center justify-center gap-3 px-5 py-2 bg-[#745e46] 
-                       text-white rounded-full font-semibold hover:bg-[#5b4a3c] transition shadow-lg 
-                          w-full md:w-auto text-md cursor-pointer"
+              disabled={product.instock === false}
+              className={`flex items-center justify-center gap-3 px-5 py-2 
+                       text-white rounded-full font-semibold transition shadow-lg 
+                          w-full md:w-auto text-md ${product.instock === false ? "bg-gray-400 cursor-not-allowed" : "bg-[#745e46] hover:bg-[#5b4a3c] cursor-pointer"}`}
             >
-              <ShoppingCart className="w-5 h-5" /> Add to Cart
+              <ShoppingCart className="w-5 h-5" /> {product.instock === false ? "Out of Stock" : "Add to Cart"}
             </button>
-           <button
-  onClick={() => {
-    const phoneNumber = "919500694734"; // 👈 replace with your WhatsApp number
-    const productLink = window.location.href; // ✅ public product URL
-    const message = `Hi! I'm interested in buying this product: ${productLink}`;
-    const encodedMessage = encodeURIComponent(message);
-    window.open(`https://wa.me/${phoneNumber}?text=${encodedMessage}`, "_blank");
-  }}
-  className="px-8 py-2 bg-[#3d5f12] text-white rounded-full font-semibold 
-  hover:bg-[#2c460d] transition shadow-lg w-full md:w-auto cursor-pointer"
->
-  Buy Now
-</button>
+            <button
+              onClick={handleBuyNow}
+              disabled={product.instock === false}
+              className={`px-8 py-2 text-white rounded-full font-semibold 
+  transition shadow-lg w-full md:w-auto ${product.instock === false ? "bg-gray-400 cursor-not-allowed" : "bg-[#3d5f12] hover:bg-[#2c460d] cursor-pointer"}`}
+            >
+              Buy Now
+            </button>
           </div>
+
           {/* Size Selection */}
           <div className="mt-1">
             <p className="font-medium mb-1 text-lg">Select Size:</p>
@@ -278,11 +374,10 @@ const ProductDetail = () => {
                 <button
                   key={size}
                   onClick={() => setSelectedSize(size)}
-                  className={`px-3 py-1 border-2 rounded-lg text-sm font-semibold transition cursor-pointer ${
-                    selectedSize === size
-                      ? "bg-[#745e46] text-white border-[#745e46] shadow-md"
-                      : "bg-white text-gray-700 border-gray-300 hover:border-[#745e46]"
-                  }`}
+                  className={`px-3 py-1 border-2 rounded-lg text-sm font-semibold transition cursor-pointer ${selectedSize === size
+                    ? "bg-[#745e46] text-white border-[#745e46] shadow-md"
+                    : "bg-white text-gray-700 border-gray-300 hover:border-[#745e46]"
+                    }`}
                 >
                   {size}
                 </button>
@@ -298,11 +393,10 @@ const ProductDetail = () => {
                 <button
                   key={index}
                   onClick={() => setSelectedThickness(thick)}
-                  className={`px-4 py-2 border-2 rounded-full font-medium transition text-sm ${
-                    selectedThickness === thick
-                      ? "bg-[#4e7265] text-white border-[#4e7265] text-sm"
-                      : "border-[#4e7265] text-[#4e7265] hover:bg-[#4e7265] hover:text-white text-sm"
-                  }`}
+                  className={`px-4 py-2 border-2 rounded-full font-medium transition text-sm ${selectedThickness === thick
+                    ? "bg-[#4e7265] text-white border-[#4e7265] text-sm"
+                    : "border-[#4e7265] text-[#4e7265] hover:bg-[#4e7265] hover:text-white text-sm"
+                    }`}
                 >
                   {thick}
                 </button>
@@ -420,8 +514,7 @@ const ProductDetail = () => {
                 <div className="px-4 py-4 text-gray-700 border-t text-sm leading-relaxed space-y-2">
                   <ul className="list-disc list-inside space-y-1">
                     <li>
-                      <strong>Warranty:</strong> 10 years of manufacturing
-                      warranty covering sagging & foam defects.
+                      <strong>Warranty:</strong> {product.warranty || "10 years of manufacturing warranty covering sagging & foam defects."}
                     </li>
                     <li>
                       <strong>Trial Period:</strong> Enjoy a 100-night risk-free
@@ -448,9 +541,7 @@ const ProductDetail = () => {
           <div className="mt-6">
             <h2 className="font-semibold text-xl mb-3">Description</h2>
             <p className="text-gray-700 leading-relaxed">
-              Premium memory foam with breathable fabric. Supports spinal
-              alignment, reduces pressure points. Washable zip cover. 10 Years
-              Warranty.
+              {product.description || "Premium memory foam with breathable fabric. Supports spinal alignment, reduces pressure points. Washable zip cover. 10 Years Warranty."}
             </p>
           </div>
           {/* Why Choose This Mattress */}
@@ -459,10 +550,18 @@ const ProductDetail = () => {
               Why Choose This Mattress
             </h2>
             <ul className="list-disc list-inside text-gray-700 space-y-1 pl-4">
-              <li>Orthopedic-certified support</li>
-              <li>Dual comfort (soft + firm sides)</li>
-              <li>Temperature control fabric</li>
-              <li>Hypoallergenic materials</li>
+              {product.whyChoose ? (
+                product.whyChoose.split('\n').filter(line => line.trim()).map((point, index) => (
+                  <li key={index}>{point.trim()}</li>
+                ))
+              ) : (
+                <>
+                  <li>Orthopedic-certified support</li>
+                  <li>Dual comfort (soft + firm sides)</li>
+                  <li>Temperature control fabric</li>
+                  <li>Hypoallergenic materials</li>
+                </>
+              )}
             </ul>
           </div>
         </div>

@@ -8,7 +8,7 @@ export const ProductProvider = ({ children }) => {
     return stored ? JSON.parse(stored) : [];
   });
 
-  useEffect(() => {
+  useEffect(() => { 
     localStorage.setItem("addedProducts", JSON.stringify(products));
   }, [products]);
 

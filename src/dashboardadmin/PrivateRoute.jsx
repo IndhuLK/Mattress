@@ -8,4 +8,4 @@ const PrivateRoute = () => {
   return isAuth ? <Outlet /> : <Navigate to="/admin/login" replace />;
 };
 
-export default PrivateRoute;
+export default PrivateRoute; 

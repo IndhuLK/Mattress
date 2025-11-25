@@ -12,7 +12,7 @@ const AdminLogin = () => {
   const MOCK_USERNAME = 'admin';
   const MOCK_PASSWORD = 'password123';
 
-  const handleSubmit = (e) => {
+  const handleSubmit = (e) => { 
     e.preventDefault();
     setError('');
 
@@ -26,7 +26,7 @@ const AdminLogin = () => {
       setError('Invalid Username or Password');
       setPassword(''); 
     }
-  };
+  }; 
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-gray-100">
